@@ -1,14 +1,15 @@
 """
 fetch_report_data.py
 
+WHEN TO RUN: Before every biweekly DAGs & Churn meeting (every 2 weeks).
+Run again on Sunday night / Monday morning for the most up-to-date data.
+
 Fetches live data from Notion Issues Table, MCT, and Stripe.
 Writes report_data.json, which generate_meeting_report.py reads.
+Also auto-generates Key Takeaways (Slide 2) and freezes resolution snapshots.
 
-Run once before the meeting:
     python3 fetch_report_data.py
-
-Then regenerate the HTML:
-    python3 generate_meeting_report.py
+    python3 generate_meeting_report.py   # then open meeting_report.html
 """
 
 import json

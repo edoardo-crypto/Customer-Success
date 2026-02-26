@@ -2,6 +2,9 @@
 """
 sync_next_checkin.py
 ---------------------
+WHEN TO RUN: After sync_last_contact.py has updated contact dates, or any
+time you want to refresh the Next Check-in dates across all customers.
+
 Computes and writes "📞 Next Scheduled Check-in" for every active customer
 in Notion based on their Last Contact Date and Tier:
 

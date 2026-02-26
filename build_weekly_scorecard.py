@@ -2,8 +2,12 @@
 """
 build_weekly_scorecard.py
 
-Creates the "Weekly CS Scorecards" Notion database under the CS Ops Hub page
-and populates the W09 (Feb 24 – Mar 2) row with auto-computed KPIs.
+WHEN TO RUN: Manually any time, or automatically by the n8n "Weekly Scorecard
+Builder" workflow (runs every Monday 06:00 CET). Re-running is safe — it
+updates the existing row for the current week rather than creating a duplicate.
+
+Computes and writes the current week's KPI row into the "Weekly CS Scorecards"
+Notion database.
 
 KPIs auto-computed (from Master Customer Table):
   1. Red Health          – active customers with Health Status == "Red"

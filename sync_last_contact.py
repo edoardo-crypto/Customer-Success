@@ -2,9 +2,12 @@
 """
 sync_last_contact.py
 --------------------
+WHEN TO RUN: Manually when needed, or via the n8n "Daily Last Contact Date
+Sync" workflow (runs every day at 23:30 CET). Safe to re-run at any time.
+
 Scans Alex's and Aya's Google Calendars (shared with Edoardo),
 matches events to active customers in Notion, and writes the most
-recent contact date back to the "📞 Last Contact Date" property.
+recent contact date back to the "📞 Last Contact Date 🔒" property.
 
 Usage:
   python3 sync_last_contact.py

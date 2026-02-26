@@ -1,13 +1,12 @@
 """
 generate_meeting_report.py
 
-Generates meeting_report.html — a single-page presentation for the biweekly
-DAGs & Churn meeting.
+WHEN TO RUN: Always run after fetch_report_data.py — never alone.
+Together they are the two-step process before every biweekly meeting.
 
-Reads live data from report_data.json (written by fetch_report_data.py).
-Falls back to hardcoded mock data if report_data.json is not present.
-
-Navigate with arrow keys or click the dot nav. Best viewed fullscreen (F11).
+Reads report_data.json and renders meeting_report.html — a 6-slide
+presentation for the DAGs & Churn meeting. Navigate with arrow keys
+or the dot nav on the right. Best viewed fullscreen (F11).
 """
 
 import json
