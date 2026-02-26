@@ -46,8 +46,9 @@ if _data:
     RESOLUTION_RATES      = _data["resolution_rates"]
     COMM_RATE_TREND       = _data["comm_rate_trend"]
     FLAGGED_CUSTOMERS     = _data["flagged_customers"]
-    CHURN_MRR_BY_PERIOD   = _data["churn_mrr_by_period"]
-    CHURNED               = _data["churned"]
+    CANCELED_PER_PERIOD   = _data.get("canceled_per_period", [])
+    CHURNING_PIPELINE     = _data.get("churning_pipeline", [])
+    CANCELED_THIS_PERIOD  = _data.get("canceled_this_period", [])
     TOP_CUSTOMERS_BY_ISSUES = _data["top_customers_by_issues"]
     TOTAL_IN_SCOPE_ISSUES = _data.get("total_in_scope_issues", sum(c["issues"] for c in _data["top_customers_by_issues"]))
     CUSTOMERS_COUNT_S6    = _data.get("customers_count", len(set()))
@@ -96,25 +97,30 @@ else:
         {"Customer": "Pawnee Parks", "Days waiting":  3, "Open issues": 4, "Flag": "Open issues"},
     ]
 
-    CHURN_MRR_BY_PERIOD = {
-        "Globex":   [1500,    0,    0],
-        "Initech":  [ 900,    0,    0],
-        "Brawndo":  [ 600,    0,    0],
-        "Vandelay": [   0, 1200,    0],
-        "Prestige": [   0,  800,    0],
-        "Umbrella": [   0,    0, 1100],
-        "Sabre":    [   0,    0,  900],
-    }
-
-    CHURNED = [
-        {"Customer": "Globex",   "MRR": "$1,500", "Period": "P1", "Reason": "Performance"},
-        {"Customer": "Initech",  "MRR": "$900",   "Period": "P1", "Reason": "Platform"},
-        {"Customer": "Brawndo",  "MRR": "$600",   "Period": "P1", "Reason": "AI behavior"},
-        {"Customer": "Vandelay", "MRR": "$1,200", "Period": "P2", "Reason": "Performance"},
-        {"Customer": "Prestige", "MRR": "$800",   "Period": "P2", "Reason": "AI behavior"},
-        {"Customer": "Umbrella", "MRR": "$1,100", "Period": "P3", "Reason": "Platform"},
-        {"Customer": "Sabre",    "MRR": "$900",   "Period": "P3", "Reason": "Performance"},
+    CANCELED_PER_PERIOD = [
+        {"period": "P1", "label": "P1 (Feb 16–Mar 1)",  "count": 3, "mrr": 3000, "customers": [
+            {"name": "Globex",   "mrr_raw": 1500, "reason": "Missing features"},
+            {"name": "Initech",  "mrr_raw":  900, "reason": "AI Behavior"},
+            {"name": "Brawndo",  "mrr_raw":  600, "reason": "Competitor"},
+        ]},
+        {"period": "P2", "label": "P2 (Mar 2–Mar 15)",  "count": 2, "mrr": 2000, "customers": [
+            {"name": "Vandelay", "mrr_raw": 1200, "reason": "Platform & UI"},
+            {"name": "Prestige", "mrr_raw":  800, "reason": "AI Behavior"},
+        ]},
+        {"period": "P3", "label": "P3 (Mar 16–Mar 29)", "count": 2, "mrr": 2000, "customers": [
+            {"name": "Umbrella", "mrr_raw": 1100, "reason": "Missing features"},
+            {"name": "Sabre",    "mrr_raw":  900, "reason": "Competitor"},
+        ]},
     ]
+
+    CHURNING_PIPELINE = [
+        {"name": "Pendant Publishing", "mrr_raw": 800, "cancel_date": "2026-03-05", "reason": "Unknown"},
+        {"name": "Dunder Mifflin",     "mrr_raw": 600, "cancel_date": "2026-03-12", "reason": "Missing features"},
+    ]
+
+    CANCELED_THIS_PERIOD = next(
+        (p["customers"] for p in CANCELED_PER_PERIOD if p["period"] == "P3"), []
+    )
 
     TOP_CUSTOMERS_BY_ISSUES = [
         {"customer": "Acme Corp",      "issues": 12, "bugs": 8,  "features": 4},
@@ -135,24 +141,14 @@ else:
 
 print(f"📊 Rendering from: {_source}")
 
-CHURNED_THIS_PERIOD = [c for c in CHURNED if c["Period"] == CURRENT_PERIOD]
-
-# ── Slide 5: current-period-only KPIs ──
-CHURNED_COUNT_THIS_PERIOD = len(CHURNED_THIS_PERIOD)
-TOTAL_MRR_THIS_PERIOD     = sum(c.get("mrr_raw", 0) for c in CHURNED_THIS_PERIOD)
-
-# Group by churn reason (current period), sorted by MRR desc
-_reason_agg = {}
-for c in CHURNED_THIS_PERIOD:
-    r = c.get("Reason") or "Unknown"
-    if r not in _reason_agg:
-        _reason_agg[r] = {"reason": r, "mrr": 0, "customers": []}
-    _reason_agg[r]["mrr"] += c.get("mrr_raw", 0)
-    _reason_agg[r]["customers"].append(c["Customer"])
-CHURN_BY_REASON = sorted(_reason_agg.values(), key=lambda x: -x["mrr"])
+# ── Slide 5: churning pipeline KPIs ──
+CHURNING_COUNT     = len(CHURNING_PIPELINE)
+CHURNING_MRR_TOTAL = sum(c.get("mrr_raw", 0) for c in CHURNING_PIPELINE)
+# Period end dates for JS chart bucketing
+PERIOD_END_DATES   = [p.get("end", "") for p in CANCELED_PER_PERIOD]
 
 # Computed values — slide 6
-CHURNED_COUNT     = CHURNED_COUNT_THIS_PERIOD
+CHURNED_COUNT     = CHURNING_COUNT
 TOTAL_ISSUES_S6   = TOTAL_IN_SCOPE_ISSUES
 # Issues that actually appear in the tick chart (have a customer linked)
 LINKED_ISSUES_S6  = sum(c["issues"] for c in TOP_CUSTOMERS_BY_ISSUES)
@@ -334,48 +330,32 @@ def render_comm_rate_cards():
     return "\n".join(cards)
 
 
-CHURN_REASON_ORDER = [
-    "Missing features", "AI Behavior", "Platform & UI", "Integration", "Competitor", "Unknown"
-]
-
-
-def render_churn_reason_table():
-    reason_lookup = {r["reason"]: r for r in CHURN_BY_REASON}
+def render_churning_pipeline_table():
+    """All Churning customers — Customer / MRR / Ends / Reason."""
+    if not CHURNING_PIPELINE:
+        return (
+            '<thead><tr><th>Customer</th><th style="text-align:right;">MRR</th>'
+            '<th>Ends</th><th>Reason</th></tr></thead>'
+            '<tbody><tr><td colspan="4" style="color:var(--muted);text-align:center;">'
+            'No customers at risk</td></tr></tbody>'
+        )
     rows = []
-    for reason in CHURN_REASON_ORDER:
-        d = reason_lookup.get(reason)
-        if d is None:
-            rows.append(
-                f'<tr>'
-                f'<td>{reason}</td>'
-                f'<td style="text-align:center;color:var(--muted);">—</td>'
-                f'<td style="text-align:right;color:var(--muted);">—</td>'
-                f'</tr>'
-            )
-        else:
-            mrr_fmt = f'${d["mrr"]:,.0f}' if d["mrr"] else '—'
-            rows.append(
-                f'<tr>'
-                f'<td>{reason}</td>'
-                f'<td style="text-align:center;">{len(d["customers"])}</td>'
-                f'<td style="text-align:right;">{mrr_fmt}</td>'
-                f'</tr>'
-            )
-    # Catch-all: reasons not in the predefined list
-    for r in CHURN_BY_REASON:
-        if r["reason"] not in CHURN_REASON_ORDER:
-            rows.append(
-                f'<tr>'
-                f'<td>{r["reason"]}</td>'
-                f'<td style="text-align:center;">{len(r["customers"])}</td>'
-                f'<td style="text-align:right;">${r["mrr"]:,.0f}</td>'
-                f'</tr>'
-            )
+    for c in CHURNING_PIPELINE:
+        mrr_fmt = f'${c["mrr_raw"]:,.0f}' if c.get("mrr_raw") else '—'
+        rows.append(
+            f'<tr>'
+            f'<td>{c["name"]}</td>'
+            f'<td style="text-align:right;">{mrr_fmt}</td>'
+            f'<td style="color:var(--muted);">{c.get("cancel_date") or "—"}</td>'
+            f'<td style="color:var(--muted);">{c.get("reason") or "—"}</td>'
+            f'</tr>'
+        )
     header = (
         '<thead><tr>'
+        '<th>Customer</th>'
+        '<th style="text-align:right;">MRR</th>'
+        '<th>Ends</th>'
         '<th>Reason</th>'
-        '<th style="text-align:center;"># Customers</th>'
-        '<th style="text-align:right;">Total MRR</th>'
         '</tr></thead>'
     )
     return header + '<tbody>' + ''.join(rows) + '</tbody>'
@@ -754,30 +734,35 @@ HTML = f"""<!DOCTYPE html>
 
   <div class="slide-body">
     <div class="summary-grid">
-      <div class="summary-card red-card">
-        <div class="summary-number kpi-red">{CHURNED_COUNT_THIS_PERIOD}</div>
-        <div class="summary-label">Customers churned</div>
-        <div style="font-size:13px;color:var(--muted);">{_CUR_PERIOD_LONG}</div>
+      <div class="summary-card" style="border-top:3px solid var(--yellow);">
+        <div class="summary-number" style="color:var(--yellow);">{CHURNING_COUNT}</div>
+        <div class="summary-label">Churning</div>
+        <div style="font-size:13px;color:var(--muted);">customers scheduled to leave</div>
       </div>
       <div class="summary-card amber-card">
-        <div class="summary-number" style="color:var(--yellow);">${TOTAL_MRR_THIS_PERIOD:,}</div>
-        <div class="summary-label">Total MRR churned</div>
-        <div style="font-size:13px;color:var(--muted);">{_CUR_PERIOD_LONG}</div>
+        <div class="summary-number" style="color:var(--yellow);">${CHURNING_MRR_TOTAL:,.0f}</div>
+        <div class="summary-label">MRR at risk</div>
+        <div style="font-size:13px;color:var(--muted);">total churning pipeline</div>
       </div>
     </div>
 
     <div class="row" style="flex:1; gap:20px;">
 
-      <!-- LEFT: per-customer stacked bar, no legend -->
-      <div class="card col" style="flex:1.6;">
-        <div class="card-title">MRR churned per period — hover for customer details</div>
-        <canvas id="chart-churn-trend" style="max-height:300px;"></canvas>
+      <!-- LEFT: churning MRR stacked by cancel period -->
+      <div class="card col" style="flex:1; display:flex; flex-direction:column;">
+        <div class="card-title">Churning MRR — by subscription end date</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">
+          When each at-risk customer's subscription ends
+        </div>
+        <div style="position:relative; flex:1; min-height:0;">
+          <canvas id="chart-churning-trend"></canvas>
+        </div>
       </div>
 
-      <!-- RIGHT: reason summary table -->
-      <div class="card col" style="flex:1;">
-        <div class="card-title">Breakdown by reason — {_CUR_PERIOD_LONG}</div>
-        <table>{render_churn_reason_table()}</table>
+      <!-- RIGHT: full churning pipeline table -->
+      <div class="card col" style="flex:1; overflow-y:auto;">
+        <div class="card-title">Churning customers</div>
+        <table style="font-size:12px;">{render_churning_pipeline_table()}</table>
       </div>
 
     </div>
@@ -844,8 +829,7 @@ const BUG_TYPES      = {json.dumps(BUG_TYPES)};
 const TYPE_NAMES     = {json.dumps(BUG_TYPE_NAMES)};
 const COLORS         = ['#4F8EF7','#F87171','#A78BFA','#34D399','#FBBF24'];
 const RES_BY_PERIOD   = {json.dumps(RESOLUTION_BY_PERIOD)};
-const CHURN_MRR       = {json.dumps(CHURN_MRR_BY_PERIOD)};
-const CHURN_BY_REASON = {json.dumps(CHURN_BY_REASON)};
+const CHURNING_PIPELINE    = {json.dumps(CHURNING_PIPELINE)};
 const TOP_CUSTOMERS   = {json.dumps(TOP_CUSTOMERS_BY_ISSUES)};
 const COMM_PERIODS    = {json.dumps([c["period"] for c in COMM_RATE_TREND])};
 const COMM_RATES      = {json.dumps([c["rate"] for c in COMM_RATE_TREND])};
@@ -1028,49 +1012,51 @@ new Chart(document.getElementById('chart-resolution-h'), {{
   }}
 }});
 
-// ── CHART 5 — MRR stacked by customer per period ─────────────────────
-const CHURN_PALETTE = ['#F87171','#FB923C','#FBBF24','#A78BFA','#34D399','#60A5FA','#F472B6'];
-const churnDatasets = Object.entries(CHURN_MRR).map(([name, data], i) => ({{
-  label: name,
-  data: data,
-  backgroundColor: CHURN_PALETTE[i % CHURN_PALETTE.length],
-  stack: 'churn',
-  borderRadius: 4,
-  datalabels: {{
-    display: function(ctx) {{ return ctx.raw > 0; }},
-    anchor: 'center',
-    align: 'center',
-    formatter: v => '$' + v.toLocaleString(),
-    font: {{ size: 11, weight: '600' }},
-    color: '#fff',
-  }},
-}}));
-
-new Chart(document.getElementById('chart-churn-trend'), {{
-  type: 'bar',
-  data: {{ labels: PERIODS, datasets: churnDatasets }},
-  options: {{
-    responsive: true,
-    plugins: {{
-      legend: {{ display: false }},
-      tooltip: {{
-        callbacks: {{
-          label: function(ctx) {{
-            const v = ctx.raw;
-            if (!v) return null;
-            return ctx.dataset.label + ': $' + v.toLocaleString();
-          }}
-        }}
-      }}
-    }},
-    scales: {{
-      y: {{ stacked: true, min: 0, beginAtZero: true,
-            ticks: {{ callback: v => '$' + v.toLocaleString() }},
-            grid: {{ color: '#f1f5f9' }} }},
-      x: {{ stacked: true, grid: {{ display: false }} }}
+// ── CHART 5 — Churning MRR stacked by cancel period ──────────────────
+(function() {{
+  const PERIOD_BOUNDS = [
+    {{ label: '{PERIODS[0]}', end: '{PERIOD_END_DATES[0] if PERIOD_END_DATES else ""}' }},
+    {{ label: '{PERIODS[1]}', end: '{PERIOD_END_DATES[1] if len(PERIOD_END_DATES) > 1 else ""}' }},
+    {{ label: '{PERIODS[2]}', end: '{PERIOD_END_DATES[2] if len(PERIOD_END_DATES) > 2 else ""}' }},
+    {{ label: 'Later',        end: '9999-12-31' }},
+  ];
+  function bucket(cancelDate) {{
+    if (!cancelDate) return 3;
+    for (let i = 0; i < PERIOD_BOUNDS.length; i++) {{
+      if (cancelDate <= PERIOD_BOUNDS[i].end) return i;
     }}
+    return 3;
   }}
-}});
+  const SHADES = ['#D97706','#FBBF24','#F59E0B','#FDE68A','#B45309','#FEF3C7','#92400E','#78350F','#FFFBEB','#FCD34D','#A16207'];
+  let si = 0;
+  const datasets = CHURNING_PIPELINE.map(c => {{
+    const data = [0, 0, 0, 0];
+    data[bucket(c.churning_since)] = c.mrr_raw;
+    return {{
+      label: c.name, data,
+      backgroundColor: SHADES[si++ % SHADES.length],
+      stack: 'ch', borderRadius: 4, datalabels: {{ display: false }},
+    }};
+  }});
+  new Chart(document.getElementById('chart-churning-trend'), {{
+    type: 'bar',
+    data: {{ labels: PERIOD_BOUNDS.map(p => p.label), datasets }},
+    options: {{
+      responsive: true, maintainAspectRatio: false,
+      plugins: {{
+        legend: {{ display: false }},
+        datalabels: {{ display: false }},
+        tooltip: {{ callbacks: {{ label: ctx => ctx.raw ? ctx.dataset.label + ': $' + ctx.raw.toLocaleString() : null }} }}
+      }},
+      scales: {{
+        x: {{ stacked: true, grid: {{ display: false }} }},
+        y: {{ stacked: true, beginAtZero: true,
+              ticks: {{ callback: v => '$' + v.toLocaleString() }},
+              grid: {{ color: '#f1f5f9' }} }}
+      }}
+    }}
+  }});
+}})();
 
 // ── DOT NAV + ARROW KEYS ─────────────────────────────────────────────
 const slides = ['slide1','slide2','slide3','slide4','slide5','slide6'];

@@ -638,46 +638,64 @@ def build_slide4(issues_by_period, all_issues, customer_lookup):
 # ── SLIDE 5: CHURNS ───────────────────────────────────────────────────────────
 
 def build_slide5(mct_pages):
-    """Pull churn data from MCT (Billing Status = Canceled + Churn Date)."""
-    churned             = []
-    churn_mrr_by_period = {}  # customer_name -> [mrr_p1, mrr_p2, mrr_p3]
+    """Pull churn data from MCT with strict period filtering.
 
-    for page in mct_pages:
-        if get_select(page, "💰 Billing Status") != "Canceled":
-            continue
-
-        churn_date   = get_date(page, "😢 Churn Date")
-        period_idx   = None
-        period_lbl   = None
-        for idx, p in enumerate(PERIOD_RANGES):
-            if date_in_period(churn_date, p):
-                period_idx = idx
-                period_lbl = p["label"]
-                break
-
-        # Only include churns that fall within a defined period
-        if period_lbl is None:
-            continue
-
-        name         = get_title(page, "🏢 Company Name") or "Unknown"
-        mrr          = get_number(page, "💰 MRR") or 0
-        churn_reason = get_select(page, "🔁 Churn Reason") or "Unknown"
-
-        if name not in churn_mrr_by_period:
-            churn_mrr_by_period[name] = [0, 0, 0]
-        churn_mrr_by_period[name][period_idx] = mrr
-
-        churned.append({
-            "Customer": name,
-            "MRR":      f"${mrr:,.0f}" if mrr else "—",
-            "mrr_raw":  mrr or 0,
-            "Period":   period_lbl,
-            "Reason":   churn_reason,
+    - canceled_per_period: accounts whose subscription actually ended in each period
+      (Billing Status = Canceled, Churn Date falls in that period's window)
+    - churning_pipeline: all currently-churning customers sorted by cancel date
+      (Billing Status = Churning, any cancel date — forward-looking pipeline)
+    - canceled_this_period: convenience slice of canceled_per_period for CURRENT_PERIOD
+    """
+    # Build canceled_per_period — strict Churn Date filter, no clipping
+    canceled_per_period = []
+    for p in PERIOD_RANGES:
+        customers = []
+        for page in mct_pages:
+            if get_select(page, "💰 Billing Status") != "Canceled":
+                continue
+            churn_date = get_date(page, "😢 Churn Date")
+            if not date_in_period(churn_date, p):
+                continue
+            name   = get_title(page, "🏢 Company Name") or "Unknown"
+            mrr    = get_number(page, "💰 MRR") or 0
+            reason = get_select(page, "🔁 Churn Reason") or "Unknown"
+            customers.append({"name": name, "mrr_raw": mrr, "reason": reason})
+        customers.sort(key=lambda x: -x["mrr_raw"])
+        canceled_per_period.append({
+            "period":    p["label"],
+            "label":     p["display"],
+            "end":       p["end"],
+            "count":     len(customers),
+            "mrr":       sum(c["mrr_raw"] for c in customers),
+            "customers": customers,
         })
 
+    # Build churning_pipeline — all Churning customers, sorted by cancel date
+    churning_pipeline = []
+    for page in mct_pages:
+        if get_select(page, "💰 Billing Status") != "Churning":
+            continue
+        name        = get_title(page, "🏢 Company Name") or "Unknown"
+        mrr         = get_number(page, "💰 MRR") or 0
+        cancel_date    = get_date(page, "📅 Cancel Date") or ""
+        reason         = get_select(page, "🔁 Churn Reason") or "Unknown"
+        churning_since = get_date(page, "📅 Churning Since") or ""
+        churning_pipeline.append({
+            "name":           name,
+            "mrr_raw":        mrr,
+            "cancel_date":    cancel_date,
+            "churning_since": churning_since,
+            "reason":         reason,
+        })
+    churning_pipeline.sort(key=lambda x: x["cancel_date"])
+
+    cur = next((p for p in canceled_per_period if p["period"] == CURRENT_PERIOD), None)
+    canceled_this_period = cur["customers"] if cur else []
+
     return {
-        "churn_mrr_by_period": churn_mrr_by_period,
-        "churned":             churned,
+        "canceled_per_period":  canceled_per_period,
+        "churning_pipeline":    churning_pipeline,
+        "canceled_this_period": canceled_this_period,
     }
 
 
