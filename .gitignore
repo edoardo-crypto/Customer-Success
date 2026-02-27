@@ -8,6 +8,10 @@ token.json
 report_data.json
 resolution_snapshots.json
 meeting_report.html
+cs_dashboard.html
+
+# ── Weekly archive (customer data, auto-generated) ────────────────────
+CS_weekly/
 
 # ── macOS & editor noise ──────────────────────────────────────────────
 .DS_Store

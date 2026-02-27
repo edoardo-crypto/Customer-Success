@@ -1,0 +1,77 @@
+name: Weekly CS Snapshot
+
+# Runs every Friday at 15:00 CET (= 14:00 UTC in winter / 16:00 CEST in summer).
+# Can also be triggered manually from the GitHub Actions tab → "Run workflow".
+
+on:
+  schedule:
+    - cron: '0 14 * * 5'   # Friday 14:00 UTC = 15:00 CET (exact in winter, 1h late in summer)
+  workflow_dispatch:         # Manual trigger
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      # ── 1. Get the code ────────────────────────────────────────────────────
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # ── 2. Python ─────────────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests python-dotenv \
+                      google-api-python-client google-auth-oauthlib google-auth-httplib2
+
+      # ── 3. Write Google credential files from secrets ──────────────────────
+      # If GCAL_TOKEN_JSON or GCAL_CLIENT_SECRETS are not set, GCal contacts
+      # will be skipped (shows 0) but the rest of the snapshot still runs fine.
+      - name: Write Google credential files
+        if: ${{ env.GCAL_TOKEN_JSON != '' && env.GCAL_CLIENT_SECRETS != '' }}
+        env:
+          GCAL_TOKEN_JSON: ${{ secrets.GCAL_TOKEN_JSON }}
+          GCAL_CLIENT_SECRETS: ${{ secrets.GCAL_CLIENT_SECRETS }}
+        run: |
+          echo "$GCAL_TOKEN_JSON" | base64 -d > token.json
+          echo "$GCAL_CLIENT_SECRETS" | base64 -d > client_secrets.json
+
+      # ── 4. Run the snapshot ────────────────────────────────────────────────
+      - name: Run weekly_snapshot.py
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        run: python3 weekly_snapshot.py
+
+      # ── 5. Upload HTML as a downloadable artifact (90-day retention) ───────
+      # PDF is skipped on CI (no Chrome at the macOS path); HTML is sufficient.
+      - name: Upload HTML snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cs-snapshot-${{ github.run_id }}
+          path: CS_weekly/*.html
+          retention-days: 90
+          if-no-files-found: warn
+
+      # ── 6. Slack notification ──────────────────────────────────────────────
+      - name: Notify Slack
+        if: always()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_CS }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK" ]; then echo "No SLACK_WEBHOOK_CS secret — skipping"; exit 0; fi
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ "$JOB_STATUS" = "success" ]; then
+            TEXT=":white_check_mark: Weekly CS snapshot done — <${RUN_URL}|Download HTML>"
+          else
+            TEXT=":x: Weekly CS snapshot *FAILED* — <${RUN_URL}|View logs>"
+          fi
+          curl -s -X POST "${SLACK_WEBHOOK}" \
+            -H "Content-Type: application/json" \
+            --data-raw "{\"text\":\"${TEXT}\"}"
