@@ -44,7 +44,8 @@ jobs:
       # ── 4. Run the snapshot ────────────────────────────────────────────────
       - name: Run weekly_snapshot.py
         env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_TOKEN:    ${{ secrets.NOTION_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         run: python3 weekly_snapshot.py
 
       # ── 5. Upload HTML as a downloadable artifact (90-day retention) ───────

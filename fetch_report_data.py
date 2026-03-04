@@ -26,7 +26,7 @@ load_dotenv()
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 
 NOTION_TOKEN      = os.environ["NOTION_TOKEN"]
-STRIPE_KEY        = os.environ["STRIPE_KEY"]
+STRIPE_KEY        = os.environ.get("STRIPE_KEY", "")   # not used; optional for CI
 ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
 
 ISSUES_DB_ID = "bd1ed48de20e426f8bebeb8e700d19d8"
@@ -48,12 +48,41 @@ NOTION_HDR_V2 = {
 
 # ── PERIOD DEFINITIONS ────────────────────────────────────────────────────────
 
-PERIOD_RANGES = [
-    {"label": "P1", "display": "P1 (Feb 16 – Mar 1)",  "start": "2026-02-16", "end": "2026-03-01"},
-    {"label": "P2", "display": "P2 (Mar 2 – Mar 15)",  "start": "2026-03-02", "end": "2026-03-15"},
-    {"label": "P3", "display": "P3 (Mar 16 – Mar 29)", "start": "2026-03-16", "end": "2026-03-29"},
-]
-CURRENT_PERIOD = "P1"   # P1 is the only period with data; update each cycle
+EPOCH_START = date(2026, 2, 16)  # First period's Monday — never changes
+
+
+def compute_rolling_periods(today=None):
+    today = today or date.today()
+    window_idx = max((today - EPOCH_START).days // 14, 0)
+
+    def window_range(idx):
+        s = EPOCH_START + timedelta(days=idx * 14)
+        e = s + timedelta(days=13)
+        return s.isoformat(), e.isoformat()
+
+    def fmt_display(label, s_iso, e_iso):
+        s, e = date.fromisoformat(s_iso), date.fromisoformat(e_iso)
+        return f"{label} ({s.strftime('%b')} {s.day} – {e.strftime('%b')} {e.day})"
+
+    if window_idx <= 2:
+        # Ramp-up: CURRENT advances P1 → P2 → P3 over the first 3 periods
+        periods = []
+        for i, lbl in enumerate(["P1", "P2", "P3"]):
+            s, e = window_range(i)
+            periods.append({"label": lbl, "display": fmt_display(lbl, s, e), "start": s, "end": e})
+        current = ["P1", "P2", "P3"][window_idx]
+    else:
+        # Steady-state rolling: P3 = current, P2 = previous, P1 = 2 ago
+        periods = []
+        for i, lbl in enumerate(["P1", "P2", "P3"]):
+            s, e = window_range(window_idx - 2 + i)
+            periods.append({"label": lbl, "display": fmt_display(lbl, s, e), "start": s, "end": e})
+        current = "P3"
+
+    return periods, current
+
+
+PERIOD_RANGES, CURRENT_PERIOD = compute_rolling_periods()
 TODAY = date.today()
 
 # ── ISSUE CLASSIFICATION ──────────────────────────────────────────────────────
@@ -148,6 +177,21 @@ def get_relation_ids(page, prop_name):
 def get_number(page, prop_name):
     prop = page.get("properties", {}).get(prop_name)
     return prop.get("number") if prop else None
+
+
+def get_formula_number(page, prop_name):
+    prop = page.get("properties", {}).get(prop_name)
+    if not prop or prop.get("type") != "formula":
+        return None
+    return prop.get("formula", {}).get("number")
+
+
+def get_rollup_number(page, prop_name):
+    """Return the numeric value of a rollup with type=number (e.g. count/sum)."""
+    prop = page.get("properties", {}).get(prop_name)
+    if not prop or prop.get("type") != "rollup":
+        return None
+    return prop.get("rollup", {}).get("number")
 
 
 def get_rollup_select_names(page, prop_name):
@@ -425,37 +469,60 @@ _CAT_COLORS = {
 
 
 def _cluster_themes(issues, category):
-    """Bucket a list of issues into named themes via keyword matching on title."""
+    """Bucket a list of issues into named themes via keyword matching on title.
+
+    Returns list of dicts: {label, total, resolved, open}
+    """
     theme_rules = _THEMES_BY_CATEGORY.get(category, [])
-    buckets = defaultdict(int)
+    buckets          = defaultdict(int)
+    buckets_resolved = defaultdict(int)
     for issue in issues:
         title_lc = issue.get("title", "").lower()
         matched = False
         for keywords, label in theme_rules:
             if any(kw in title_lc for kw in keywords):
                 buckets[label] += 1
+                if issue.get("status") == "Resolved":
+                    buckets_resolved[label] += 1
                 matched = True
                 break
         if not matched:
             buckets["_other"] += 1
+            if issue.get("status") == "Resolved":
+                buckets_resolved["_other"] += 1
 
     # Build ordered list: defined themes first (only those with ≥1), then "Other"
     result = []
     for _, label in theme_rules:
-        if buckets.get(label, 0) > 0:
-            result.append(f"{label} ({buckets[label]})")
+        total = buckets.get(label, 0)
+        if total > 0:
+            resolved = buckets_resolved.get(label, 0)
+            result.append({"label": label, "total": total, "resolved": resolved, "open": total - resolved})
     other_n = buckets.get("_other", 0)
     if other_n > 0:
-        result.append(f"Other ({other_n})")
+        other_r = buckets_resolved.get("_other", 0)
+        result.append({"label": "Other", "total": other_n, "resolved": other_r, "open": other_n - other_r})
     return result
 
 
+def _review_period_label(issues_by_period):
+    """Most recent period with ≥5 in-scope issues (the period being reviewed in the meeting).
+
+    On day 1 of a new period the new period has 0 issues, so this walks back to the
+    just-completed period — which is exactly what the biweekly meeting is reviewing.
+    """
+    labels  = [p["label"] for p in PERIOD_RANGES]
+    cur_idx = labels.index(CURRENT_PERIOD) if CURRENT_PERIOD in labels else 0
+    for i in range(cur_idx, -1, -1):
+        if len([x for x in issues_by_period.get(labels[i], []) if x["is_in_scope"]]) >= 5:
+            return labels[i]
+    return labels[0]
+
+
 def build_slide2_takeaways(issues_by_period):
-    """Return key_takeaways_s2: a list of category blocks for the current period."""
-    cur_issues = [
-        i for i in issues_by_period.get(CURRENT_PERIOD, [])
-        if i["is_in_scope"]
-    ]
+    """Return key_takeaways_s2: a list of category blocks for the review period."""
+    review_period = _review_period_label(issues_by_period)
+    cur_issues = [i for i in issues_by_period.get(review_period, []) if i["is_in_scope"]]
     by_cat = defaultdict(list)
     for i in cur_issues:
         bucket = CATEGORY_DISPLAY.get(i["category"], "Uncategorized")
@@ -501,9 +568,15 @@ def build_slide2(issues_by_period):
 def load_snapshots() -> dict:
     if os.path.exists(SNAPSHOTS_FILE):
         with open(SNAPSHOTS_FILE) as f:
-            return json.load(f)
-    # Initialise empty structure for all periods
-    return {p["label"]: {"7d": None, "14d": None, "28d": None} for p in PERIOD_RANGES}
+            raw = json.load(f)
+        # Auto-migrate old label keys (P1/P2/P3) to date-based keys ("2026-02-16")
+        label_to_start = {p["label"]: p["start"] for p in PERIOD_RANGES}
+        migrated = {}
+        for k, v in raw.items():
+            new_key = label_to_start.get(k, k)   # remap P1→"2026-02-16", else keep
+            migrated[new_key] = v
+        return migrated
+    return {}
 
 
 def save_snapshots(snapshots: dict):
@@ -541,8 +614,7 @@ def build_slide3(issues_by_period, snapshots):
         if total_n > 0:
             period_start = date.fromisoformat(p["start"])
             period_end   = date.fromisoformat(p["end"])
-            label        = p["label"]
-            snap       = snapshots.setdefault(label, {"7d": None, "14d": None, "28d": None})
+            snap       = snapshots.setdefault(p["start"], {"7d": None, "14d": None, "28d": None})
 
             resolved_with_dates = [
                 i for i in issues
@@ -675,17 +747,27 @@ def build_slide5(mct_pages):
     for page in mct_pages:
         if get_select(page, "💰 Billing Status") != "Churning":
             continue
-        name        = get_title(page, "🏢 Company Name") or "Unknown"
-        mrr         = get_number(page, "💰 MRR") or 0
-        cancel_date    = get_date(page, "📅 Cancel Date") or ""
-        reason         = get_select(page, "🔁 Churn Reason") or "Unknown"
-        churning_since = get_date(page, "📅 Churning Since") or ""
+        name                  = get_title(page, "🏢 Company Name") or "Unknown"
+        mrr                   = get_number(page, "💰 MRR") or 0
+        cancel_date           = get_date(page, "📅 Cancel Date") or ""
+        reason                = get_select(page, "🔁 Churn Reason") or "Unknown"
+        churning_since        = get_date(page, "📅 Churning Since") or ""
+        days_since_contact    = get_formula_number(page, "📞 Days Since Last Contact")
+        cs_sentiment          = get_select(page, "🧠 CS Sentiment") or ""
+        ai_resolution_rate    = get_number(page, "🤖 AI Resolution Rate")
+        open_issues           = get_rollup_number(page, "⚠️ # of Open Issues")
+        cs_owner              = get_select(page, "⭐ CS Owner") or ""
         churning_pipeline.append({
-            "name":           name,
-            "mrr_raw":        mrr,
-            "cancel_date":    cancel_date,
-            "churning_since": churning_since,
-            "reason":         reason,
+            "name":               name,
+            "mrr_raw":            mrr,
+            "cancel_date":        cancel_date,
+            "days_since_contact": days_since_contact,
+            "cs_sentiment":       cs_sentiment,
+            "ai_resolution_rate": ai_resolution_rate,
+            "open_issues":        int(open_issues) if open_issues is not None else None,
+            "cs_owner":           cs_owner,
+            "churning_since":     churning_since,
+            "reason":             reason,
         })
     churning_pipeline.sort(key=lambda x: x["cancel_date"])
 
@@ -701,9 +783,10 @@ def build_slide5(mct_pages):
 
 # ── SLIDE 6: TOP CUSTOMERS ────────────────────────────────────────────────────
 
-def build_slide6(issues_by_period, customer_lookup):
-    """Top 10 customers by total issue volume in the current period."""
-    issues = issues_by_period[CURRENT_PERIOD]
+def build_slide6(issues_by_period, customer_lookup, review_period=None):
+    """Top 10 customers by total issue volume in the review period."""
+    rp     = review_period or CURRENT_PERIOD
+    issues = issues_by_period[rp]
 
     customer_bugs     = defaultdict(int)
     customer_features = defaultdict(int)
@@ -781,6 +864,9 @@ def build_report_data(no_classify=False):
 
     snapshots = load_snapshots()
 
+    review_period = _review_period_label(issues_by_period)
+    print(f"   Review period: {review_period} (CURRENT_PERIOD={CURRENT_PERIOD})")
+
     print("🔨 Building slides…")
     s1 = build_slide1(issues_by_period)
     s2 = build_slide2(issues_by_period)
@@ -788,13 +874,15 @@ def build_report_data(no_classify=False):
     save_snapshots(snapshots)                         # persist any newly-computed snapshots
     s4 = build_slide4(issues_by_period, all_issues, customer_lookup)
     s5 = build_slide5(mct_pages)
-    s6 = build_slide6(issues_by_period, customer_lookup)
+    s6 = build_slide6(issues_by_period, customer_lookup, review_period=review_period)
     takeaways = build_slide2_takeaways(issues_by_period)
 
     return {
         "fetched_at":       datetime.utcnow().isoformat() + "Z",
         "periods":          [p["display"] for p in PERIOD_RANGES],
+        "period_ranges":    PERIOD_RANGES,
         "current_period":   CURRENT_PERIOD,
+        "review_period":    review_period,
         **s1, **s2, **s3, **s4, **s5, **s6,
         "key_takeaways_s2": takeaways,
     }

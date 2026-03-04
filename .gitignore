@@ -6,7 +6,6 @@ token.json
 
 # ── Generated outputs (re-created by scripts, may contain customer data) ─
 report_data.json
-resolution_snapshots.json
 meeting_report.html
 cs_dashboard.html
 

@@ -37,8 +37,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-NOTION_TOKEN   = os.environ.get("NOTION_TOKEN",  "***REMOVED***")
-INTERCOM_TOKEN = "***REMOVED***"
+NOTION_TOKEN       = os.environ.get("NOTION_TOKEN",   "***REMOVED***")
+INTERCOM_TOKEN     = "***REMOVED***"
+SLACK_BOT_TOKEN    = os.environ.get("SLACK_BOT_TOKEN", "***REMOVED***")
+GUILLEM_DM_CHANNEL = "U05T6VDTTFC"                          # Guillem Oliva's Slack user ID (bot DMs him directly)
 
 MCT_DS_ID    = "3ceb1ad0-91f1-40db-945a-c51c58035898"
 SCORECARD_DB = "311e418f-d8c4-810e-8b11-cdc50357e709"
@@ -199,6 +201,7 @@ def compute_kpis(mct_rows, window):
         "Aya":  {"red_health": 0, "no_contact": 0, "churned": 0, "graduated": 0},
     }
     customers_for_gcal = []
+    churning_pipeline_mrr = 0   # total MRR at risk across all churning customers
 
     for row in mct_rows:
         props = row.get("properties", {})
@@ -224,18 +227,23 @@ def compute_kpis(mct_rows, window):
                 "billing": billing_status,
             })
 
+        # Accumulate churning pipeline MRR (regardless of CS owner)
+        if billing_status == "Churning":
+            churning_pipeline_mrr += _num(props.get("💰 MRR", {}), "number") or 0
+
         if owner not in ("Alex", "Aya"):
             continue
 
         health_status    = _str(props.get("🚦 Health Status", {}),             "formula", "string") or ""
         days_no_contact  = _num(props.get("📞 Days Since Last Contact", {}),    "formula", "number")
-        is_churned_stage = billing_status != "Active"
+        # Canceled = gone forever; Active + Churning = still a customer we track
+        is_churned_stage = billing_status not in ("Active", "Churning")
 
-        # KPI 1: Red Health (active customers only)
+        # KPI 1: Red Health (active + churning customers)
         if "Red" in health_status and not is_churned_stage:
             kpis[owner]["red_health"] += 1
 
-        # KPI 2: No Contact >21d (active customers only)
+        # KPI 2: No Contact >21d (active + churning customers)
         if days_no_contact is not None and days_no_contact > 21 and not is_churned_stage:
             kpis[owner]["no_contact"] += 1
 
@@ -253,20 +261,21 @@ def compute_kpis(mct_rows, window):
         v = kpis[mgr]
         print(f"   {mgr}: red={v['red_health']}, nocontact={v['no_contact']}, "
               f"churned={v['churned']}, graduated={v['graduated']}")
+    print(f"   Churning pipeline MRR: €{churning_pipeline_mrr:,.0f}/mo")
 
-    return kpis, customers_for_gcal
+    return kpis, customers_for_gcal, churning_pipeline_mrr
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Step 3 — Fetch Intercom data (reply times + unique companies contacted)
 # ══════════════════════════════════════════════════════════════════════════════
 
-def fetch_intercom_data(window):
+def fetch_intercom_data(window, customers_for_gcal):
     """
     Fetches all conversations closed in the Fri→Fri window.
     Returns:
       reply_times         — {"Alex": {"reply_min": float|None}, "Aya": {...}}
-      intercom_contacted  — {"Alex": int, "Aya": int}  (unique company IDs per closer)
+      intercom_contacted  — {"Alex": set, "Aya": set}  (MCT page_ids per closer, via email-domain match)
     """
     print("\n[3] Fetching Intercom conversations …")
 
@@ -305,8 +314,9 @@ def fetch_intercom_data(window):
 
     print(f"   ✓ {len(all_convs)} conversations fetched")
 
+    domain_to_page_id  = {c["domain"]: c["page_id"] for c in customers_for_gcal if c["domain"]}
     reply_by_admin     = {}   # admin_id → [delta_seconds]
-    companies_by_admin = {}   # admin_id → set of company_ids
+    page_ids_by_admin  = {}   # admin_id → set of MCT page_ids
 
     for c in all_convs:
         stats  = c.get("statistics") or {}
@@ -321,11 +331,13 @@ def fetch_intercom_data(window):
         if reply_at and assignment_at and reply_at > assignment_at:
             reply_by_admin.setdefault(closer, []).append(reply_at - assignment_at)
 
-        # Company (unique customer contact)
-        company = c.get("company") or {}
-        cid = company.get("id") or company.get("company_id")
-        if cid:
-            companies_by_admin.setdefault(closer, set()).add(str(cid))
+        # Company via email domain → MCT page_id
+        author_email = ((c.get("source") or {}).get("author") or {}).get("email") or ""
+        if "@" in author_email:
+            domain = author_email.split("@")[-1].lower()
+            pid = domain_to_page_id.get(domain)
+            if pid:
+                page_ids_by_admin.setdefault(closer, set()).add(pid)
 
     reply_times        = {}
     intercom_contacted = {}
@@ -340,9 +352,9 @@ def fetch_intercom_data(window):
             reply_times[label] = {"reply_min": None}
             print(f"   {label}: no reply data")
 
-        n = len(companies_by_admin.get(admin_id, set()))
-        intercom_contacted[label] = n
-        print(f"   {label}: {n} unique companies via Intercom")
+        page_ids = page_ids_by_admin.get(admin_id, set())
+        intercom_contacted[label] = page_ids
+        print(f"   {label}: {len(page_ids)} unique customers via Intercom")
 
     return reply_times, intercom_contacted
 
@@ -385,20 +397,20 @@ def fetch_gcal_contacted(window, customers_for_gcal):
     """
     Fetches Alex's and Aya's GCal events in the Fri→Fri window.
     Matches events to MCT customers via domain or company name.
-    Returns {"Alex": int, "Aya": int} — unique MCT customers contacted per owner.
+    Returns {"Alex": set, "Aya": set} — MCT page_id sets per owner.
     """
     print("\n[4] Fetching GCal customer contacts …")
 
     creds, err = _get_gcal_creds()
     if err:
         print(f"   ⚠ GCal skipped: {err}")
-        return {"Alex": 0, "Aya": 0}
+        return {"Alex": set(), "Aya": set()}
 
     try:
         from googleapiclient.discovery import build
     except ImportError:
         print("   ⚠ GCal skipped: google libs not installed")
-        return {"Alex": 0, "Aya": 0}
+        return {"Alex": set(), "Aya": set()}
 
     service = build("calendar", "v3", credentials=creds)
 
@@ -419,7 +431,7 @@ def fetch_gcal_contacted(window, customers_for_gcal):
 
     if not cal_map:
         print("   ⚠ No CS team calendars found — skipping GCal")
-        return {"Alex": 0, "Aya": 0}
+        return {"Alex": set(), "Aya": set()}
 
     # Fetch events in Fri→Fri window
     time_min = window["last_fri"].isoformat()
@@ -493,11 +505,11 @@ def fetch_gcal_contacted(window, customers_for_gcal):
                 gcal_page_ids[event["owner"]].add(customer["page_id"])
 
     result = {
-        "Alex": len(gcal_page_ids.get("alex", set())),
-        "Aya":  len(gcal_page_ids.get("aya", set())),
+        "Alex": gcal_page_ids.get("alex", set()),
+        "Aya":  gcal_page_ids.get("aya", set()),
     }
-    print(f"   Alex: {result['Alex']} unique customers via GCal")
-    print(f"   Aya:  {result['Aya']} unique customers via GCal")
+    print(f"   Alex: {len(result['Alex'])} unique customers via GCal")
+    print(f"   Aya:  {len(result['Aya'])} unique customers via GCal")
     return result
 
 
@@ -507,17 +519,17 @@ def fetch_gcal_contacted(window, customers_for_gcal):
 
 def combine_contacts(intercom_contacted, gcal_contacted):
     """
-    Sum Intercom + GCal contacts per owner.
-    Intercom uses company_ids; GCal uses MCT page_ids (different namespaces),
-    so we add them — some overlap is possible but acceptable for scorecard use.
+    Union Intercom + GCal MCT page_id sets per owner for true deduplication.
+    Both inputs are {"Alex": set, "Aya": set} of MCT page_ids.
     """
     print("\n[5] Combining customer contacts …")
     result = {}
     for label in ("Alex", "Aya"):
-        ic = intercom_contacted.get(label, 0)
-        gc = gcal_contacted.get(label, 0)
-        result[label] = ic + gc
-        print(f"   {label}: {ic} Intercom + {gc} GCal = {result[label]} total")
+        ic_set = intercom_contacted.get(label, set())
+        gc_set = gcal_contacted.get(label, set())
+        union  = ic_set | gc_set
+        result[label] = len(union)
+        print(f"   {label}: {len(ic_set)} Intercom + {len(gc_set)} GCal → {result[label]} unique (union)")
     return result
 
 
@@ -673,6 +685,65 @@ def save_weekly_files(window):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# Step 9 — Slack DM to Guillem
+# ══════════════════════════════════════════════════════════════════════════════
+
+def post_guillem_dm(kpis, reply_times, contacts, window, churning_mrr):
+    """
+    Send a structured weekly KPI summary to Guillem via Slack DM.
+    Requires SLACK_BOT_TOKEN env var (xoxb-...).
+    """
+    print("\n[9] Sending weekly summary DM to Guillem …")
+
+    if not SLACK_BOT_TOKEN:
+        print("   ⚠ SLACK_BOT_TOKEN not set — DM skipped.")
+        print("     Set it in Credentials.md / GitHub Secret 'SLACK_BOT_TOKEN'.")
+        return
+
+    a_rt = reply_times["Alex"]["reply_min"]
+    y_rt = reply_times["Aya"]["reply_min"]
+
+    def fmt_rt(v):
+        return f"{v} min" if v is not None else "—"
+
+    text = (
+        f"📊 *Weekly CS Snapshot — {window['week_label']}*\n"
+        f"\n"
+        f"*Alex de Godoy*\n"
+        f"  📞 Contacted: {contacts['Alex']}  |  😢 Churned: {kpis['Alex']['churned']}"
+        f"  |  🎉 Graduated: {kpis['Alex']['graduated']}\n"
+        f"  🔴 Red Health: {kpis['Alex']['red_health']}  |  ⏰ No Contact >21d: {kpis['Alex']['no_contact']}"
+        f"  |  ⚡ Median Reply: {fmt_rt(a_rt)}\n"
+        f"\n"
+        f"*Aya Guerimej*\n"
+        f"  📞 Contacted: {contacts['Aya']}  |  😢 Churned: {kpis['Aya']['churned']}"
+        f"  |  🎉 Graduated: {kpis['Aya']['graduated']}\n"
+        f"  🔴 Red Health: {kpis['Aya']['red_health']}  |  ⏰ No Contact >21d: {kpis['Aya']['no_contact']}"
+        f"  |  ⚡ Median Reply: {fmt_rt(y_rt)}\n"
+        f"\n"
+        f"*Churning Pipeline*: €{churning_mrr:,.0f}/mo MRR at risk\n"
+    )
+
+    r = requests.post(
+        "https://slack.com/api/chat.postMessage",
+        headers={
+            "Authorization": f"Bearer {SLACK_BOT_TOKEN}",
+            "Content-Type": "application/json",
+        },
+        json={"channel": GUILLEM_DM_CHANNEL, "text": text},
+    )
+    resp = r.json()
+    if resp.get("ok"):
+        print("   ✓ DM sent to Guillem")
+    else:
+        print(f"   ✗ Slack error: {resp.get('error', r.text)}")
+
+    if DRY_RUN:
+        print("   [dry-run] DM content:")
+        print(text)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # Main
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -692,15 +763,16 @@ def main():
     print(f"  Label  : {window['week_label']}")
     print(f"  Week # : W{window['this_fri'].isocalendar()[1]:02d} (scorecard key: {window['week_start_date']})")
 
-    mct_rows             = fetch_all_mct_rows()
-    kpis, customers_gcal = compute_kpis(mct_rows, window)
-    reply_times, ic_cont = fetch_intercom_data(window)
-    gcal_cont            = fetch_gcal_contacted(window, customers_gcal)
-    contacts             = combine_contacts(ic_cont, gcal_cont)
+    mct_rows                        = fetch_all_mct_rows()
+    kpis, customers_gcal, churn_mrr = compute_kpis(mct_rows, window)
+    reply_times, ic_cont            = fetch_intercom_data(window, customers_gcal)
+    gcal_cont                       = fetch_gcal_contacted(window, customers_gcal)
+    contacts                        = combine_contacts(ic_cont, gcal_cont)
 
     find_or_create_scorecard_row(kpis, reply_times, contacts, window)
     regenerate_dashboard()
     save_weekly_files(window)
+    post_guillem_dm(kpis, reply_times, contacts, window, churn_mrr)
 
     # ── Summary table ──────────────────────────────────────────────────────────
     a_rt = reply_times["Alex"]["reply_min"]

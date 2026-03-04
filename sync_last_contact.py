@@ -7,7 +7,7 @@ Sync" workflow (runs every day at 23:30 CET). Safe to re-run at any time.
 
 Scans Alex's and Aya's Google Calendars (shared with Edoardo),
 matches events to active customers in Notion, and writes the most
-recent contact date back to the "📞 Last Contact Date 🔒" property.
+recent meeting date back to the "📅 Last Meeting Date 🔒" property.
 
 Usage:
   python3 sync_last_contact.py
@@ -327,15 +327,15 @@ def match_events_to_customers(all_events, customers):
 # ── Notion: Write last contact date ──────────────────────────────────────────
 
 def update_notion_last_contact(page_id, contact_date):
-    """PATCH the '📞 Last Contact Date' property on a Notion page."""
+    """PATCH the '📅 Last Meeting Date 🔒' property on a Notion page."""
     body = {
         "properties": {
-            "📞 Last Contact Date 🔒": {
+            "📅 Last Meeting Date 🔒": {
                 "date": {"start": contact_date.isoformat()}
             }
         }
     }
-    notion_request("PATCH", f"pages/{page_id}", body, version="2022-06-28")
+    notion_request("PATCH", f"pages/{page_id}", body, version="2025-09-03")
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────

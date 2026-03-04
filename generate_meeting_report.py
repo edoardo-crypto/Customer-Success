@@ -11,6 +11,9 @@ or the dot nav on the right. Best viewed fullscreen (F11).
 
 import json
 import os
+import shutil
+import subprocess
+from datetime import datetime
 
 OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "meeting_report.html")
 DATA_FILE   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "report_data.json")
@@ -53,6 +56,7 @@ if _data:
     TOTAL_IN_SCOPE_ISSUES = _data.get("total_in_scope_issues", sum(c["issues"] for c in _data["top_customers_by_issues"]))
     CUSTOMERS_COUNT_S6    = _data.get("customers_count", len(set()))
     CURRENT_PERIOD        = _data["current_period"]
+    REVIEW_PERIOD         = _data.get("review_period", CURRENT_PERIOD)
 else:
     _source = "mock data"
     PERIODS = ["P1 (Feb 2–15)", "P2 (Feb 16–Mar 1)", "P3 (Mar 2–15)"]
@@ -138,6 +142,7 @@ else:
     TOTAL_IN_SCOPE_ISSUES = sum(c["issues"] for c in TOP_CUSTOMERS_BY_ISSUES)
     CUSTOMERS_COUNT_S6    = len(TOP_CUSTOMERS_BY_ISSUES)
     CURRENT_PERIOD = "P3"
+    REVIEW_PERIOD  = CURRENT_PERIOD
 
 print(f"📊 Rendering from: {_source}")
 
@@ -159,12 +164,12 @@ TOP10_PCT         = (round(sum(c["issues"] for c in TOP_CUSTOMERS_BY_ISSUES[:10]
 
 # ── Slide 1 KPI cards (computed from live data) ──
 _PERIOD_LABELS = [p.split(" ")[0] for p in PERIODS]   # ["P1", "P2", "P3"]
-_CUR_IDX  = _PERIOD_LABELS.index(CURRENT_PERIOD) if CURRENT_PERIOD in _PERIOD_LABELS else len(PERIODS) - 1
+_CUR_IDX  = _PERIOD_LABELS.index(REVIEW_PERIOD) if REVIEW_PERIOD in _PERIOD_LABELS else len(PERIODS) - 1
 _PREV_IDX = max(_CUR_IDX - 1, 0)
 
-# Long-form current period label: "P1 (Feb 16 – Mar 1)" → "Period 1 (Feb 16 – Mar 1)"
+# Long-form review period label: "P1 (Feb 16 – Mar 1)" → "Period 1 (Feb 16 – Mar 1)"
 _PERIOD_NUM_MAP  = {"P1": "Period 1", "P2": "Period 2", "P3": "Period 3"}
-_CUR_PERIOD_LONG = PERIODS[_CUR_IDX].replace(CURRENT_PERIOD, _PERIOD_NUM_MAP.get(CURRENT_PERIOD, CURRENT_PERIOD))
+_CUR_PERIOD_LONG = PERIODS[_CUR_IDX].replace(REVIEW_PERIOD, _PERIOD_NUM_MAP.get(REVIEW_PERIOD, REVIEW_PERIOD))
 
 KPI_BUGS_THIS_PERIOD = BUG_VOLUME[_CUR_IDX]
 KPI_PERIOD_LABEL     = PERIODS[_CUR_IDX]
@@ -200,7 +205,7 @@ def _cat_kpi(cat_name, color_var):
         pct   = round((cur_n - p1_n) / p1_n * 100)
         pct_s = (f"+{pct}%" if pct > 0 else f"{pct}%")
         clr   = "kpi-green" if pct <= 0 else "kpi-red"
-        sub   = f"{p1_n} → {cur_n} ({_PERIOD_LABELS[0]} → {CURRENT_PERIOD})"
+        sub   = f"{p1_n} → {cur_n} ({_PERIOD_LABELS[0]} → {REVIEW_PERIOD})"
     else:
         pct_s, clr = f"{cur_n}", "kpi-blue"
         sub = f"{cur_n} issues this period"
@@ -270,22 +275,39 @@ def render_resolution_rate_table():
     return f"<thead><tr>{header_html}</tr></thead><tbody>{''.join(rows)}</tbody>"
 
 
+def _theme_row(t):
+    """Render one theme entry. t may be a dict {label,total,resolved,open} or legacy str."""
+    if isinstance(t, dict):
+        total    = t["total"]
+        resolved = t["resolved"]
+        badge = (f'<span class="theme-resolved">{resolved}/{total} resolved</span>'
+                 if resolved > 0 else
+                 '<span class="theme-open">all open</span>')
+        return f'<li>{t["label"]} ({total}) {badge}</li>'
+    return f'<li>{t}</li>'
+
+
 def render_key_takeaways():
     # KEY_TAKEAWAYS_S2 is a list of category blocks:
-    # [{"category": str, "count": int, "color": hex, "themes": [str, ...]}, ...]
+    # [{"category": str, "count": int, "color": hex, "themes": [dict|str, ...]}, ...]
     blocks = []
     for blk in KEY_TAKEAWAYS_S2:
         cat   = blk.get("category", "")
         count = blk.get("count", 0)
         color = blk.get("color", "#94A3B8")
         themes = blk.get("themes", [])
-        theme_items = "".join(f"<li>{t}</li>" for t in themes)
+        theme_items = "".join(_theme_row(t) for t in themes)
+        total_resolved = sum(t["resolved"] for t in themes if isinstance(t, dict))
+        resolved_html = (
+            f' <span class="takeaway-cat-resolved">{total_resolved}/{count} resolved</span>'
+            if total_resolved > 0 else ""
+        )
         blocks.append(
             f'<div class="takeaway-block">'
             f'<div class="takeaway-cat-header">'
             f'<span class="takeaway-dot" style="background:{color};"></span>'
             f'<strong>{cat}</strong>'
-            f'<span class="takeaway-count">{count} issues</span>'
+            f'<span class="takeaway-count">{count} issues{resolved_html}</span>'
             f'</div>'
             f'<ul class="takeaway-theme-list">{theme_items}</ul>'
             f'</div>'
@@ -330,23 +352,73 @@ def render_comm_rate_cards():
     return "\n".join(cards)
 
 
+_SENTIMENT_STYLE = {
+    "Positive":  ("badge-green",  "😊"),
+    "Neutral":   ("badge-yellow", "😐"),
+    "Negative":  ("badge-red",    "😟"),
+    "At Risk":   ("badge-red",    "⚠️"),
+}
+
 def render_churning_pipeline_table():
-    """All Churning customers — Customer / MRR / Ends / Reason."""
+    """All Churning customers — Customer / MRR / Days Since Contact / CS Sentiment / AI Res. Rate / Reason."""
     if not CHURNING_PIPELINE:
         return (
             '<thead><tr><th>Customer</th><th style="text-align:right;">MRR</th>'
-            '<th>Ends</th><th>Reason</th></tr></thead>'
-            '<tbody><tr><td colspan="4" style="color:var(--muted);text-align:center;">'
+            '<th>Days Since<br>Contact</th><th>CS Sentiment</th><th>AI Res.<br>Rate</th>'
+            '<th style="text-align:center;">Open<br>Issues</th><th>CS Owner</th><th>Reason</th></tr></thead>'
+            '<tbody><tr><td colspan="8" style="color:var(--muted);text-align:center;">'
             'No customers at risk</td></tr></tbody>'
         )
     rows = []
     for c in CHURNING_PIPELINE:
         mrr_fmt = f'${c["mrr_raw"]:,.0f}' if c.get("mrr_raw") else '—'
+
+        days = c.get("days_since_contact")
+        if days is not None:
+            days_int = int(days)
+            color = ("color:var(--red)" if days_int > 30
+                     else "color:var(--yellow)" if days_int > 14
+                     else "color:var(--text)")
+            days_html = f'<span style="{color};font-weight:600;">{days_int}d</span>'
+        else:
+            days_html = '<span style="color:var(--muted);">—</span>'
+
+        sentiment = c.get("cs_sentiment") or ""
+        if sentiment:
+            badge_cls, icon = _SENTIMENT_STYLE.get(sentiment, ("badge-blue", ""))
+            sentiment_html = f'<span class="badge {badge_cls}">{icon} {sentiment}</span>'
+        else:
+            sentiment_html = '<span style="color:var(--muted);">—</span>'
+
+        ai_rate = c.get("ai_resolution_rate")
+        if ai_rate is not None:
+            pct = round(ai_rate * 100) if ai_rate <= 1 else round(ai_rate)
+            ai_html = f'{pct}%'
+        else:
+            ai_html = '<span style="color:var(--muted);">—</span>'
+
+        open_n = c.get("open_issues")
+        if open_n is not None and open_n > 0:
+            open_html = f'<span style="font-weight:700;color:var(--red);">{open_n}</span>'
+        elif open_n == 0:
+            open_html = '<span style="color:var(--muted);">0</span>'
+        else:
+            open_html = '<span style="color:var(--muted);">—</span>'
+
+        _owner_colors = {"Alex": "badge-blue", "Aya": "badge-purple"}
+        _owner_raw = c.get("cs_owner") or ""
+        owner = (f'<span class="badge {_owner_colors.get(_owner_raw, "badge-blue")}">{_owner_raw}</span>'
+                 if _owner_raw else '<span style="color:var(--muted);">—</span>')
+
         rows.append(
             f'<tr>'
             f'<td>{c["name"]}</td>'
             f'<td style="text-align:right;">{mrr_fmt}</td>'
-            f'<td style="color:var(--muted);">{c.get("cancel_date") or "—"}</td>'
+            f'<td style="text-align:center;">{days_html}</td>'
+            f'<td style="text-align:center;">{ai_html}</td>'
+            f'<td style="text-align:center;">{open_html}</td>'
+            f'<td>{sentiment_html}</td>'
+            f'<td>{owner}</td>'
             f'<td style="color:var(--muted);">{c.get("reason") or "—"}</td>'
             f'</tr>'
         )
@@ -354,7 +426,11 @@ def render_churning_pipeline_table():
         '<thead><tr>'
         '<th>Customer</th>'
         '<th style="text-align:right;">MRR</th>'
-        '<th>Ends</th>'
+        '<th style="text-align:center;">Days Since<br>Contact</th>'
+        '<th style="text-align:center;">AI Res.<br>Rate</th>'
+        '<th style="text-align:center;">Open<br>Issues</th>'
+        '<th>CS Sentiment</th>'
+        '<th>CS Owner</th>'
         '<th>Reason</th>'
         '</tr></thead>'
     )
@@ -511,6 +587,7 @@ HTML = f"""<!DOCTYPE html>
   .badge-yellow {{ background: #FEF9C3; color: #713F12; }}
   .badge-green  {{ background: #D1FAE5; color: #065F46; }}
   .badge-blue   {{ background: #DBEAFE; color: #1D4ED8; }}
+  .badge-purple {{ background: #EDE9FE; color: #6D28D9; }}
 
   /* ── CHART CONTAINERS ────────────────────────────────────────────── */
   .chart-box {{ position: relative; }}
@@ -540,6 +617,9 @@ HTML = f"""<!DOCTYPE html>
     padding: 7px 12px; background: #f8fafc; border-radius: 6px;
     border-left: 3px solid var(--border); font-size: 13px; color: var(--text); line-height: 1.5;
   }}
+  .theme-resolved {{ color:#16a34a; font-weight:600; margin-left:6px; }}
+  .theme-open     {{ color:#9ca3af; margin-left:6px; }}
+  .takeaway-cat-resolved {{ color:#16a34a; font-weight:600; margin-left:8px; }}
 
   /* ── SLIDE 5 SUMMARY CARDS ───────────────────────────────────────── */
   .summary-grid {{ display: flex; gap: 16px; }}
@@ -751,6 +831,7 @@ HTML = f"""<!DOCTYPE html>
       <!-- LEFT: churning MRR stacked by cancel period -->
       <div class="card col" style="flex:1; display:flex; flex-direction:column;">
         <div class="card-title">Churning MRR — by subscription end date</div>
+        <div style="font-size:22px;font-weight:800;color:var(--navy);margin-bottom:2px;">${CHURNING_MRR_TOTAL:,.0f}</div>
         <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">
           When each at-risk customer's subscription ends
         </div>
@@ -760,7 +841,7 @@ HTML = f"""<!DOCTYPE html>
       </div>
 
       <!-- RIGHT: full churning pipeline table -->
-      <div class="card col" style="flex:1; overflow-y:auto;">
+      <div class="card col" style="flex:2; overflow-y:auto;">
         <div class="card-title">Churning customers</div>
         <table style="font-size:12px;">{render_churning_pipeline_table()}</table>
       </div>
@@ -1113,11 +1194,71 @@ slides.forEach(id => {{ const el = document.getElementById(id); if (el) obsSync.
 """
 
 
+def _fmt_date(iso: str) -> str:
+    """'2026-02-16' → '16Feb', '2026-03-01' → '1Mar'"""
+    d = datetime.strptime(iso, "%Y-%m-%d")
+    return f"{d.day}{d.strftime('%b')}"
+
+
+def _archive():
+    """Copy the HTML to a dated folder under meetings/ and export a PDF via headless Chrome."""
+    # Resolve the current period's start/end from the JSON
+    if not _data or "period_ranges" not in _data:
+        print("⚠️  Skipping archive — period_ranges not found in report_data.json (re-run fetch_report_data.py)")
+        return
+
+    cur = next((p for p in _data["period_ranges"] if p["label"] == CURRENT_PERIOD), None)
+    if not cur:
+        print(f"⚠️  Skipping archive — no period_ranges entry for {CURRENT_PERIOD}")
+        return
+
+    folder_name = f"CS_biweekly_{_fmt_date(cur['start'])}-{_fmt_date(cur['end'])}"
+    project_root = os.path.dirname(os.path.abspath(__file__))
+    meetings_dir = os.path.join(project_root, "meetings")
+    archive_dir  = os.path.join(meetings_dir, folder_name)
+    os.makedirs(archive_dir, exist_ok=True)
+
+    # Copy HTML
+    html_dest = os.path.join(archive_dir, f"{folder_name}.html")
+    shutil.copy2(OUTPUT_FILE, html_dest)
+
+    # Export PDF via headless Chrome
+    pdf_dest   = os.path.join(archive_dir, f"{folder_name}.pdf")
+    _CHROME_CANDIDATES = [
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",  # macOS
+        "/usr/bin/google-chrome",        # Ubuntu (GitHub Actions)
+        "/usr/bin/google-chrome-stable",
+        "/snap/bin/chromium",
+    ]
+    chrome_bin = next((p for p in _CHROME_CANDIDATES if os.path.exists(p)), None)
+    if chrome_bin:
+        result = subprocess.run(
+            [
+                chrome_bin,
+                "--headless",
+                "--disable-gpu",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                f"--print-to-pdf={pdf_dest}",
+                f"file://{html_dest}",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            print(f"⚠️  Chrome PDF export failed: {result.stderr.strip()}")
+    else:
+        print("⚠️  Chrome not found — skipping PDF export")
+
+    print(f"✅  Archived to meetings/{folder_name}/")
+
+
 def main():
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         f.write(HTML)
     print(f"✅  Written → {OUTPUT_FILE}")
     print("   Open in browser (or press F11 for fullscreen) to present.")
+    _archive()
 
 
 if __name__ == "__main__":

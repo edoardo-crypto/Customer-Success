@@ -6,11 +6,11 @@ WHEN TO RUN: After sync_last_contact.py has updated contact dates, or any
 time you want to refresh the Next Check-in dates across all customers.
 
 Computes and writes "📞 Next Scheduled Check-in" for every active customer
-in Notion based on their Last Contact Date and Tier:
+in Notion based on their Last Meeting Date and Tier:
 
-  Tier 1 → +14 days
-  Tier 2 → +42 days
-  Tier 3 → +84 days (also the default when tier is missing)
+  Tier 1 → +30 days
+  Tier 2 → +45 days
+  Tier 3 → +60 days (also the default when tier is missing)
 
 Rules applied before computing:
   1. If Last Contact Date is more than 6 months ago, cap it to 6 months ago
@@ -33,15 +33,21 @@ NOTION_TOKEN          = "***REMOVED***"
 NOTION_DATA_SOURCE_ID = "3ceb1ad0-91f1-40db-945a-c51c58035898"
 
 TIER_INTERVALS = {
-    "Tier 1": 14,
-    "Tier 2": 42,
-    "Tier 3": 84,
+    "Tier 1": 30,
+    "Tier 2": 45,
+    "Tier 3": 60,
 }
-DEFAULT_INTERVAL = 84
+DEFAULT_INTERVAL = 60
 
 TODAY          = date.today()
 SIX_MONTHS_AGO = TODAY - timedelta(days=180)
-NEXT_MONDAY    = date(2026, 2, 23)
+
+def _next_monday():
+    """Return the next Monday on or after today."""
+    days_ahead = 7 - TODAY.weekday()  # weekday(): Mon=0 … Sun=6
+    return TODAY + timedelta(days=days_ahead if days_ahead < 7 else 0)
+
+NEXT_MONDAY = _next_monday()
 
 
 # ── Notion helpers ────────────────────────────────────────────────────────────
@@ -100,7 +106,7 @@ def fetch_active_customers():
             )
 
             last_contact_raw = (
-                ((props.get("📞 Last Contact Date 🔒") or {}).get("date") or {})
+                ((props.get("📅 Last Meeting Date 🔒") or {}).get("date") or {})
                 .get("start", None)
             )
             last_contact = None
@@ -175,8 +181,8 @@ def compute_row(c):
 # ── Notion PATCH helpers ──────────────────────────────────────────────────────
 
 def update_last_contact(page_id, contact_date):
-    body = {"properties": {"📞 Last Contact Date 🔒": {"date": {"start": contact_date.isoformat()}}}}
-    notion_request("PATCH", f"pages/{page_id}", body)
+    body = {"properties": {"📅 Last Meeting Date 🔒": {"date": {"start": contact_date.isoformat()}}}}
+    notion_request("PATCH", f"pages/{page_id}", body, version="2025-09-03")
 
 
 def update_next_checkin(page_id, next_date):
