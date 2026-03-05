@@ -2,9 +2,9 @@ name: Daily CS Sync
 
 # Runs every day at 09:00 CET (= 08:00 UTC winter / 07:00 CEST summer).
 # Execution order matters:
-#   1. sync_last_contact.py  — GCal → 📅 Last Meeting Date 🔒
-#   2. sync_next_checkin.py  — Last Meeting Date + Tier → 📞 Next Scheduled Check-in
-#   3. sync_contact_reasons.py — Intercom + GCal combined → 📞 Last Contact Date 🔒 + 💎 Reason
+#   1. sync_last_contact.py  — GCal past → 📅 Last Meeting Date 🔒
+#                              GCal future → 📞 Next Scheduled Check-in
+#   2. sync_contact_reasons.py — Intercom + GCal combined → 📞 Last Contact Date 🔒 + 💎 Reason
 # Each step depends on the previous, so they run sequentially in one job.
 #
 # Can be triggered manually from the GitHub Actions tab → "Run workflow".
@@ -55,13 +55,7 @@ jobs:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
         run: python3 sync_last_contact.py
 
-      # ── 6. sync_next_checkin.py → 📞 Next Scheduled Check-in ──────────────
-      - name: Run sync_next_checkin.py
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-        run: python3 sync_next_checkin.py
-
-      # ── 7. sync_contact_reasons.py → 📞 Last Contact Date 🔒 + 💎 Reason ──
+      # ── 6. sync_contact_reasons.py → 📞 Last Contact Date 🔒 + 💎 Reason ──
       - name: Run sync_contact_reasons.py
         env:
           NOTION_TOKEN:   ${{ secrets.NOTION_TOKEN }}

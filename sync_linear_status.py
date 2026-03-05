@@ -30,14 +30,8 @@ from typing import Optional
 import requests
 
 # ── Credentials (env vars preferred; hardcoded as fallback for local runs) ─────
-NOTION_TOKEN = os.environ.get(
-    "NOTION_TOKEN",
-    "***REMOVED***",
-)
-LINEAR_TOKEN = os.environ.get(
-    "LINEAR_TOKEN",
-    "***REMOVED***",
-)
+NOTION_TOKEN = os.environ.get("NOTION_TOKEN") or "***REMOVED***"
+LINEAR_TOKEN = os.environ.get("LINEAR_TOKEN") or "***REMOVED***"
 
 NOTION_VERSION = "2022-06-28"
 ISSUES_DB_ID = "bd1ed48de20e426f8bebeb8e700d19d8"

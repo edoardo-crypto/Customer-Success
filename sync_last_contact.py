@@ -61,8 +61,9 @@ NOTION_DB_ID = "84feda19cfaf4c6e9500bf21d2aaafef"
 # CS team calendars to scan
 CS_TEAM_EMAILS = ["alex@konvoai.com", "aya@konvoai.com"]
 
-# How far back to look
+# How far back / forward to look
 LOOKBACK_DAYS = 180
+LOOKAHEAD_DAYS = 90
 
 
 # ── Google Auth ───────────────────────────────────────────────────────────────
@@ -185,6 +186,59 @@ def fetch_events(service, calendar_id, owner_name):
             break
 
     print(f"  Fetched {len(events)} events from {owner_name}'s calendar")
+    return events
+
+
+def fetch_future_events(service, calendar_id, owner_name):
+    """
+    Fetch all events from today through the next LOOKAHEAD_DAYS days.
+    Returns a list of dicts: { date, summary, description, attendees, owner }
+    """
+    now = datetime.now(timezone.utc)
+    time_min = now.isoformat()
+    time_max = (now + timedelta(days=LOOKAHEAD_DAYS)).isoformat()
+
+    events = []
+    page_token = None
+    while True:
+        resp = service.events().list(
+            calendarId=calendar_id,
+            timeMin=time_min,
+            timeMax=time_max,
+            singleEvents=True,
+            orderBy="startTime",
+            pageToken=page_token,
+            maxResults=2500,
+        ).execute()
+
+        for item in resp.get("items", []):
+            start = item.get("start", {})
+            raw_date = start.get("date") or start.get("dateTime", "")[:10]
+            if not raw_date:
+                continue
+            try:
+                event_date = date.fromisoformat(raw_date)
+            except ValueError:
+                continue
+
+            attendee_emails = [
+                a.get("email", "").lower()
+                for a in item.get("attendees", [])
+            ]
+
+            events.append({
+                "date": event_date,
+                "summary": item.get("summary", ""),
+                "description": item.get("description", "") or "",
+                "attendees": attendee_emails,
+                "owner": owner_name,
+            })
+
+        page_token = resp.get("nextPageToken")
+        if not page_token:
+            break
+
+    print(f"  Fetched {len(events)} future events from {owner_name}'s calendar")
     return events
 
 
@@ -324,6 +378,60 @@ def match_events_to_customers(all_events, customers):
     return results
 
 
+def match_future_events_to_customers(future_events, customers):
+    """
+    For each customer, find the earliest upcoming event date across all calendars.
+    Uses the same matching strategies as match_events_to_customers but picks min date.
+
+    Returns { page_id: { date, customer_name, matched_via, owner } }
+    """
+    results = {}
+
+    for customer in customers:
+        name = customer["name"]
+        domain = customer["domain"]
+        name_lower = name.lower()
+
+        best_date = None
+        best_via = None
+        best_owner = None
+
+        for event in future_events:
+            matched_via = None
+
+            # Strategy 1: domain match
+            if domain:
+                for email in event["attendees"]:
+                    if email.endswith(f"@{domain}"):
+                        matched_via = "domain"
+                        break
+
+            # Strategy 2: name in event title
+            if not matched_via and name_lower in event["summary"].lower():
+                matched_via = "name-in-title"
+
+            # Strategy 3: name in event description
+            if not matched_via and name_lower in event["description"].lower():
+                matched_via = "name-in-desc"
+
+            if matched_via:
+                # Earliest upcoming date (min, not max)
+                if best_date is None or event["date"] < best_date:
+                    best_date = event["date"]
+                    best_via = matched_via
+                    best_owner = event["owner"]
+
+        if best_date:
+            results[customer["page_id"]] = {
+                "date": best_date,
+                "name": name,
+                "matched_via": best_via,
+                "owner": best_owner,
+            }
+
+    return results
+
+
 # ── Notion: Write last contact date ──────────────────────────────────────────
 
 def update_notion_last_contact(page_id, contact_date):
@@ -338,68 +446,136 @@ def update_notion_last_contact(page_id, contact_date):
     notion_request("PATCH", f"pages/{page_id}", body, version="2025-09-03")
 
 
+def update_notion_next_checkin(page_id, checkin_date):
+    """
+    PATCH the '📞 Next Scheduled Check-in' property on a Notion page.
+    Pass a date object to set the date, or None to clear it.
+    """
+    body = {
+        "properties": {
+            "📞 Next Scheduled Check-in": {
+                "date": {"start": checkin_date.isoformat()} if checkin_date else None
+            }
+        }
+    }
+    notion_request("PATCH", f"pages/{page_id}", body, version="2025-09-03")
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
+    dry_run = "--dry-run" in sys.argv
+
     print()
     print("=" * 60)
-    print("  Google Calendar → Notion Last Contact Date Sync")
+    print("  Google Calendar → Notion Contact Date Sync")
+    if dry_run:
+        print("  DRY RUN — no Notion writes")
     print("=" * 60)
 
     # Step 1: Authenticate with Google
-    print("\n[1/5] Authenticating with Google Calendar...")
+    print("\n[1/6] Authenticating with Google Calendar...")
     creds = get_google_credentials()
     service = build("calendar", "v3", credentials=creds)
     print("  Google auth OK")
 
     # Step 2: Find Alex's and Aya's calendars
-    print("\n[2/5] Locating CS team calendars...")
+    print("\n[2/6] Locating CS team calendars...")
     cal_map = find_cs_calendars(service)
     if not cal_map:
         print("  ERROR: No CS team calendars found. Nothing to do.")
         sys.exit(1)
 
-    # Step 3: Fetch events from all found calendars
-    print(f"\n[3/5] Fetching events (last {LOOKBACK_DAYS} days)...")
-    all_events = []
+    # Step 3: Fetch past events (Last Meeting Date)
+    print(f"\n[3/6] Fetching past events (last {LOOKBACK_DAYS} days)...")
+    all_past_events = []
     for owner_name, cal_id in cal_map.items():
         events = fetch_events(service, cal_id, owner_name)
-        all_events.extend(events)
-    print(f"  Total events collected: {len(all_events)}")
+        all_past_events.extend(events)
+    print(f"  Total past events collected: {len(all_past_events)}")
 
-    # Step 4: Fetch active customers from Notion
-    print("\n[4/5] Fetching active customers from Notion...")
+    # Step 4: Fetch future events (Next Scheduled Check-in)
+    print(f"\n[4/6] Fetching future events (next {LOOKAHEAD_DAYS} days)...")
+    all_future_events = []
+    for owner_name, cal_id in cal_map.items():
+        events = fetch_future_events(service, cal_id, owner_name)
+        all_future_events.extend(events)
+    print(f"  Total future events collected: {len(all_future_events)}")
+
+    # Step 5: Fetch active customers from Notion
+    print("\n[5/6] Fetching active customers from Notion...")
     customers = fetch_active_customers()
 
-    # Step 5: Match and update
-    print("\n[5/5] Matching events to customers and updating Notion...")
-    matches = match_events_to_customers(all_events, customers)
+    # Step 6: Match and update both fields
+    print("\n[6/6] Matching events to customers and updating Notion...")
+    past_matches = match_events_to_customers(all_past_events, customers)
+    future_matches = match_future_events_to_customers(all_future_events, customers)
 
-    updated = 0
-    skipped = 0
-
-    # Print summary header
+    # ── Last Meeting Date ────────────────────────────────────────────────────
     print()
+    print("  — Last Meeting Date 🔒 —")
     print(f"  {'Customer':<30} {'Last Contact':<14} {'Via':<18} {'Calendar'}")
     print(f"  {'-'*30} {'-'*14} {'-'*18} {'-'*10}")
 
+    updated_past = 0
+    skipped_past = 0
+
     for customer in sorted(customers, key=lambda c: c["name"]):
         pid = customer["page_id"]
-        if pid in matches:
-            m = matches[pid]
+        if pid in past_matches:
+            m = past_matches[pid]
             print(f"  {m['name']:<30} {m['date'].isoformat():<14} {m['matched_via']:<18} {m['owner']}")
-            try:
-                update_notion_last_contact(pid, m["date"])
-                updated += 1
-            except Exception as e:
-                print(f"    ✗ Failed to update {m['name']}: {e}")
+            if not dry_run:
+                try:
+                    update_notion_last_contact(pid, m["date"])
+                    updated_past += 1
+                except Exception as e:
+                    print(f"    ✗ Failed to update Last Meeting Date for {m['name']}: {e}")
+            else:
+                updated_past += 1
         else:
             print(f"  {customer['name']:<30} {'(no match)':<14} {'—':<18} —")
-            skipped += 1
+            skipped_past += 1
+
+    # ── Next Scheduled Check-in ──────────────────────────────────────────────
+    print()
+    print("  — Next Scheduled Check-in —")
+    print(f"  {'Customer':<30} {'Next Check-in':<14} {'Via':<18} {'Calendar'}")
+    print(f"  {'-'*30} {'-'*14} {'-'*18} {'-'*10}")
+
+    set_future = 0
+    cleared_future = 0
+
+    for customer in sorted(customers, key=lambda c: c["name"]):
+        pid = customer["page_id"]
+        if pid in future_matches:
+            m = future_matches[pid]
+            print(f"  {m['name']:<30} {m['date'].isoformat():<14} {m['matched_via']:<18} {m['owner']}")
+            if not dry_run:
+                try:
+                    update_notion_next_checkin(pid, m["date"])
+                    set_future += 1
+                except Exception as e:
+                    print(f"    ✗ Failed to set Next Check-in for {m['name']}: {e}")
+            else:
+                set_future += 1
+        else:
+            print(f"  {customer['name']:<30} {'(none)':<14} {'—':<18} —  [clear]")
+            if not dry_run:
+                try:
+                    update_notion_next_checkin(pid, None)
+                    cleared_future += 1
+                except Exception as e:
+                    print(f"    ✗ Failed to clear Next Check-in for {customer['name']}: {e}")
+            else:
+                cleared_future += 1
 
     print()
     print("=" * 60)
-    print(f"  Done. Updated: {updated} | Skipped (no match): {skipped}")
+    print(f"  Last Meeting Date:    Updated {updated_past} | No match {skipped_past}")
+    print(f"  Next Scheduled Check-in: Set {set_future} | Cleared {cleared_future}")
+    if dry_run:
+        print("  (dry run — no changes written)")
     print("=" * 60)
     print()
 
