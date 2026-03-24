@@ -2,10 +2,10 @@
 generate_meeting_report.py
 
 WHEN TO RUN: Always run after fetch_report_data.py — never alone.
-Together they are the two-step process before every biweekly meeting.
+Together they are the two-step process before every weekly meeting.
 
-Reads report_data.json and renders meeting_report.html — a 6-slide
-presentation for the DAGs & Churn meeting. Navigate with arrow keys
+Reads report_data.json and renders meeting_report.html — a 4-slide
+presentation for the Bug & Churn meeting. Navigate with arrow keys
 or the dot nav on the right. Best viewed fullscreen (F11).
 """
 
@@ -42,19 +42,23 @@ if _data:
     TARGET_LINE           = _data["target_line"]
     BUG_SOURCE_INTERCOM   = _data["bug_source_intercom"]
     BUG_SOURCE_MEETINGS   = _data["bug_source_meetings"]
+    MEETINGS_PER_PERIOD   = _data.get("meetings_per_period", [0] * len(_data["periods"]))
+    BUG_ONLY_COUNT        = _data.get("bug_only_count", [])
+    FEATURE_COUNT         = _data.get("feature_count", [])
     BUG_TYPES             = _data["bug_types"]
     BUG_TYPE_NAMES        = _data["bug_type_names"]
     KEY_TAKEAWAYS_S2      = _data.get("key_takeaways_s2") or _MOCK_KEY_TAKEAWAYS
     RESOLUTION_BY_PERIOD  = _data["resolution_by_period"]
     RESOLUTION_RATES      = _data["resolution_rates"]
-    COMM_RATE_TREND       = _data["comm_rate_trend"]
-    FLAGGED_CUSTOMERS     = _data["flagged_customers"]
-    CANCELED_PER_PERIOD   = _data.get("canceled_per_period", [])
+    OPEN_BY_PRIORITY      = _data.get("open_by_priority", [])
     CHURNING_PIPELINE     = _data.get("churning_pipeline", [])
-    CANCELED_THIS_PERIOD  = _data.get("canceled_this_period", [])
-    TOP_CUSTOMERS_BY_ISSUES = _data["top_customers_by_issues"]
-    TOTAL_IN_SCOPE_ISSUES = _data.get("total_in_scope_issues", sum(c["issues"] for c in _data["top_customers_by_issues"]))
-    CUSTOMERS_COUNT_S6    = _data.get("customers_count", len(set()))
+    CHURN_COMBINED        = _data.get("churn_combined", [])
+    CHURN_VOLUME          = _data.get("churn_volume", [0, 0, 0])
+    CHURN_CANCELED_COUNT  = _data.get("churn_canceled_count", [0, 0, 0])
+    CHURN_CHURNING_COUNT  = _data.get("churn_churning_count", [0, 0, 0])
+    SLIDE2_COMMENTARY     = _data.get("slide2_commentary", {})
+    CATEGORY_SPLIT        = _data.get("category_split", [])
+    CHURN_MRR             = _data.get("churn_mrr", [0, 0, 0])
     CURRENT_PERIOD        = _data["current_period"]
     REVIEW_PERIOD         = _data.get("review_period", CURRENT_PERIOD)
 else:
@@ -66,20 +70,21 @@ else:
 
     BUG_SOURCE_INTERCOM = [18, 15, 13]
     BUG_SOURCE_MEETINGS = [10,  9,  8]
+    MEETINGS_PER_PERIOD = [10, 12, 8]
 
     BUG_TYPES = [
-        [10, 6, 7, 3, 2],
-        [9,  5, 5, 3, 2],
-        [9,  5, 3, 2, 2],
+        [8, 5, 7, 6],
+        [7, 4, 5, 5],
+        [6, 4, 4, 3],
     ]
-    BUG_TYPE_NAMES = ["Feature request", "AI Behavior", "Integration", "Platform & UI", "Billing & Account"]
+    BUG_TYPE_NAMES = ["AI Behavior", "Platform & UI", "WhatsApp Marketing", "Integration"]
 
     KEY_TAKEAWAYS_S2 = _MOCK_KEY_TAKEAWAYS
 
     RESOLUTION_BY_PERIOD = [
-        {"Open": 10, "In Progress": 8,  "Resolved": 10},
-        {"Open":  9, "In Progress": 5,  "Resolved": 10},
-        {"Open":  8, "In Progress": 6,  "Resolved": 10},
+        {"Open": 10, "In Progress": 8,  "Resolved": 10, "Deprioritized": 0},
+        {"Open":  9, "In Progress": 5,  "Resolved": 10, "Deprioritized": 0},
+        {"Open":  8, "In Progress": 6,  "Resolved": 10, "Deprioritized": 0},
     ]
 
     RESOLUTION_RATES = [
@@ -88,79 +93,41 @@ else:
         [50,   80,   None, None],
     ]
 
-    COMM_RATE_TREND = [
-        {"period": "P1", "resolved": 20, "informed": 13, "rate": 65},
-        {"period": "P2", "resolved": 22, "informed": 15, "rate": 68},
-        {"period": "P3", "resolved": 24, "informed": 18, "rate": 75},
-    ]
-
-    FLAGGED_CUSTOMERS = [
-        {"Customer": "Acme Corp",    "Days waiting": 13, "Open issues": 4, "Flag": "Both"},
-        {"Customer": "Globex Inc",   "Days waiting": 11, "Open issues": 2, "Flag": "Wait time"},
-        {"Customer": "Initech",      "Days waiting":  6, "Open issues": 5, "Flag": "Open issues"},
-        {"Customer": "Pawnee Parks", "Days waiting":  3, "Open issues": 4, "Flag": "Open issues"},
-    ]
-
-    CANCELED_PER_PERIOD = [
-        {"period": "P1", "label": "P1 (Feb 16–Mar 1)",  "count": 3, "mrr": 3000, "customers": [
-            {"name": "Globex",   "mrr_raw": 1500, "reason": "Missing features"},
-            {"name": "Initech",  "mrr_raw":  900, "reason": "AI Behavior"},
-            {"name": "Brawndo",  "mrr_raw":  600, "reason": "Competitor"},
-        ]},
-        {"period": "P2", "label": "P2 (Mar 2–Mar 15)",  "count": 2, "mrr": 2000, "customers": [
-            {"name": "Vandelay", "mrr_raw": 1200, "reason": "Platform & UI"},
-            {"name": "Prestige", "mrr_raw":  800, "reason": "AI Behavior"},
-        ]},
-        {"period": "P3", "label": "P3 (Mar 16–Mar 29)", "count": 2, "mrr": 2000, "customers": [
-            {"name": "Umbrella", "mrr_raw": 1100, "reason": "Missing features"},
-            {"name": "Sabre",    "mrr_raw":  900, "reason": "Competitor"},
-        ]},
+    OPEN_BY_PRIORITY = [
+        {"Urgent": 1, "High": 3, "Medium": 4, "Low": 2},
+        {"Urgent": 2, "High": 2, "Medium": 3, "Low": 2},
+        {"Urgent": 1, "High": 4, "Medium": 2, "Low": 1},
     ]
 
     CHURNING_PIPELINE = [
-        {"name": "Pendant Publishing", "mrr_raw": 800, "cancel_date": "2026-03-05", "reason": "Unknown"},
-        {"name": "Dunder Mifflin",     "mrr_raw": 600, "cancel_date": "2026-03-12", "reason": "Missing features"},
+        {"name": "Pendant Publishing", "mrr_raw": 800, "cancel_date": "2026-03-05",
+         "reason": "Unknown", "type": "churning", "cs_owner": "Alex"},
+        {"name": "Dunder Mifflin",     "mrr_raw": 600, "cancel_date": "2026-03-12",
+         "reason": "Missing features", "type": "churning", "cs_owner": "Aya"},
     ]
 
-    CANCELED_THIS_PERIOD = next(
-        (p["customers"] for p in CANCELED_PER_PERIOD if p["period"] == "P3"), []
-    )
-
-    TOP_CUSTOMERS_BY_ISSUES = [
-        {"customer": "Acme Corp",      "issues": 12, "bugs": 8,  "features": 4},
-        {"customer": "Pawnee Parks",   "issues":  9, "bugs": 7,  "features": 2},
-        {"customer": "Globex Inc",     "issues":  8, "bugs": 5,  "features": 3},
-        {"customer": "Initech",        "issues":  7, "bugs": 6,  "features": 1},
-        {"customer": "Bluth Company",  "issues":  6, "bugs": 4,  "features": 2},
-        {"customer": "Dunder Mifflin", "issues":  5, "bugs": 3,  "features": 2},
-        {"customer": "Vandelay Ind.",  "issues":  4, "bugs": 4,  "features": 0},
-        {"customer": "Umbrella Co",    "issues":  4, "bugs": 2,  "features": 2},
-        {"customer": "Sabre Corp",     "issues":  3, "bugs": 2,  "features": 1},
-        {"customer": "Wayne Ent.",     "issues":  2, "bugs": 1,  "features": 1},
+    CHURN_COMBINED = [
+        {"name": "Globex", "mrr_raw": 1500, "reason": "Missing features", "type": "canceled",
+         "days_since_contact": 5, "cs_sentiment": "", "ai_resolution_rate": None, "open_issues": 0, "cs_owner": "Alex"},
+        {"name": "Initech", "mrr_raw": 900, "reason": "AI Behavior", "type": "canceled",
+         "days_since_contact": 12, "cs_sentiment": "", "ai_resolution_rate": None, "open_issues": 1, "cs_owner": "Aya"},
+        {"name": "Pendant Publishing", "mrr_raw": 800, "reason": "Unknown", "type": "churning",
+         "days_since_contact": 8, "cs_sentiment": "", "ai_resolution_rate": None, "open_issues": 0, "cs_owner": "Alex"},
     ]
 
-    TOTAL_IN_SCOPE_ISSUES = sum(c["issues"] for c in TOP_CUSTOMERS_BY_ISSUES)
-    CUSTOMERS_COUNT_S6    = len(TOP_CUSTOMERS_BY_ISSUES)
+    CHURN_VOLUME         = [5, 4, 2]
+    CHURN_CANCELED_COUNT = [3, 2, 1]
+    CHURN_CHURNING_COUNT = [2, 2, 1]
+    CHURN_MRR            = [1200, 800, 500]
+
     CURRENT_PERIOD = "P3"
     REVIEW_PERIOD  = CURRENT_PERIOD
 
 print(f"📊 Rendering from: {_source}")
 
-# ── Slide 5: churning pipeline KPIs ──
+# ── Slide 5: churn trend KPIs ──
 CHURNING_COUNT     = len(CHURNING_PIPELINE)
 CHURNING_MRR_TOTAL = sum(c.get("mrr_raw", 0) for c in CHURNING_PIPELINE)
-# Period end dates for JS chart bucketing
-PERIOD_END_DATES   = [p.get("end", "") for p in CANCELED_PER_PERIOD]
-
-# Computed values — slide 6
-CHURNED_COUNT     = CHURNING_COUNT
-TOTAL_ISSUES_S6   = TOTAL_IN_SCOPE_ISSUES
-# Issues that actually appear in the tick chart (have a customer linked)
-LINKED_ISSUES_S6  = sum(c["issues"] for c in TOP_CUSTOMERS_BY_ISSUES)
-CUSTOMERS_5PLUS   = sum(1 for c in TOP_CUSTOMERS_BY_ISSUES if c["issues"] >= 5)
-TOP10_PCT         = (round(sum(c["issues"] for c in TOP_CUSTOMERS_BY_ISSUES[:10])
-                            / TOTAL_ISSUES_S6 * 100)
-                     if TOTAL_ISSUES_S6 > 0 else 0)
 
 # ── Slide 1 KPI cards (computed from live data) ──
 _PERIOD_LABELS = [p.split(" ")[0] for p in PERIODS]   # ["P1", "P2", "P3"]
@@ -168,10 +135,14 @@ _CUR_IDX  = _PERIOD_LABELS.index(REVIEW_PERIOD) if REVIEW_PERIOD in _PERIOD_LABE
 _PREV_IDX = max(_CUR_IDX - 1, 0)
 
 # Long-form review period label: "P1 (Feb 16 – Mar 1)" → "Period 1 (Feb 16 – Mar 1)"
-_PERIOD_NUM_MAP  = {"P1": "Period 1", "P2": "Period 2", "P3": "Period 3"}
+_PERIOD_NUM_MAP  = {"P1": "Period 1", "P2": "Period 2", "P3": "Period 3",
+                    "W1": "Week 1", "W2": "Week 2", "W3": "Week 3", "W4": "Week 4",
+                    "W5": "Week 5"}
 _CUR_PERIOD_LONG = PERIODS[_CUR_IDX].replace(REVIEW_PERIOD, _PERIOD_NUM_MAP.get(REVIEW_PERIOD, REVIEW_PERIOD))
 
 KPI_BUGS_THIS_PERIOD = BUG_VOLUME[_CUR_IDX]
+KPI_BUGS_ONLY_CUR    = BUG_ONLY_COUNT[_CUR_IDX] if _CUR_IDX < len(BUG_ONLY_COUNT) else 0
+KPI_FEATURES_CUR     = FEATURE_COUNT[_CUR_IDX] if _CUR_IDX < len(FEATURE_COUNT) else 0
 KPI_PERIOD_LABEL     = PERIODS[_CUR_IDX]
 KPI_PREV_LABEL       = _PERIOD_LABELS[_PREV_IDX]
 
@@ -231,6 +202,28 @@ SLIDE2_MINI_KPIS = "".join(
 )
 
 
+# ── Slide 5 KPI cards (churn trend) ──
+_S5_CUR = CHURN_VOLUME[_CUR_IDX]
+_S5_PREV = CHURN_VOLUME[_PREV_IDX]
+_S5_MRR_CUR = CHURN_MRR[_CUR_IDX]
+
+if _S5_PREV > 0 and _CUR_IDX != _PREV_IDX:
+    _s5_wow_raw = round((_S5_CUR - _S5_PREV) / _S5_PREV * 100, 1)
+    S5_WOW_STR = f"+{_s5_wow_raw}%" if _s5_wow_raw > 0 else f"{_s5_wow_raw}%"
+    # For churn: DOWN is good (green), UP is bad (red)
+    _s5_wow_color = "kpi-green" if _s5_wow_raw <= 0 else "kpi-red"
+else:
+    S5_WOW_STR, _s5_wow_color = "—", "kpi-blue"
+
+_s5_p1 = CHURN_VOLUME[0]
+if _s5_p1 > 0 and _CUR_IDX > 0:
+    _s5_cum_raw = round((_S5_CUR - _s5_p1) / _s5_p1 * 100, 1)
+    S5_CUM_STR = f"+{_s5_cum_raw}%" if _s5_cum_raw > 0 else f"{_s5_cum_raw}%"
+    _s5_cum_color = "kpi-green" if _s5_cum_raw <= 0 else "kpi-red"
+else:
+    S5_CUM_STR, _s5_cum_color = "—", "kpi-blue"
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # RENDER HELPERS
 # ──────────────────────────────────────────────────────────────────────────────
@@ -246,20 +239,28 @@ def _rate_badge(value):
         return f'<span class="badge badge-red">{value}%</span>'
 
 
-def render_churned_rows():
-    reason_badge = {
-        "Performance": "badge-orange",
-        "Platform":    "badge-blue",
-        "AI behavior": "badge-red",
-    }
-    rows = []
-    for c in CHURNED_THIS_PERIOD:
-        bc = reason_badge.get(c["Reason"], "badge-blue")
-        rows.append(
-            f'<tr><td>{c["Customer"]}</td><td>{c["MRR"]}</td>'
-            f'<td><span class="badge {bc}">{c["Reason"]}</span></td></tr>'
+
+def render_bug_feature_badges():
+    """Render a row of badges showing bug vs feature split under each bar."""
+    cells = []
+    for i in range(len(PERIODS)):
+        b = BUG_ONLY_COUNT[i] if i < len(BUG_ONLY_COUNT) else 0
+        f = FEATURE_COUNT[i] if i < len(FEATURE_COUNT) else 0
+        cells.append(
+            f'<div style="flex:1; text-align:center;">'
+            f'<span style="display:inline-block; background:#fee2e2; color:#991b1b; '
+            f'border-radius:12px; padding:4px 10px; font-size:16px; font-weight:600; margin:0 3px;">'
+            f'\U0001f41b {b}</span> '
+            f'<span style="display:inline-block; background:#ede9fe; color:#5b21b6; '
+            f'border-radius:12px; padding:4px 10px; font-size:16px; font-weight:600; margin:0 3px;">'
+            f'\U0001f4a1 {f}</span></div>'
         )
-    return "\n".join(rows)
+    return (
+        '<div style="display:flex; justify-content:space-around; '
+        'margin-top:4px; padding: 0 38px 0 32px;">'
+        + ''.join(cells) +
+        '</div>'
+    )
 
 
 def render_resolution_rate_table():
@@ -273,6 +274,24 @@ def render_resolution_rate_table():
             cells += f"<td style='text-align:center;'>{_rate_badge(r)}</td>"
         rows.append(f"<tr>{cells}</tr>")
     return f"<thead><tr>{header_html}</tr></thead><tbody>{''.join(rows)}</tbody>"
+
+
+def _render_slide3_note():
+    """Info bubble showing difference between category-split bugs and resolution bugs."""
+    cat_bugs = sum(cs["bugs"] for cs in CATEGORY_SPLIT)
+    res_last = RESOLUTION_BY_PERIOD[-1] if RESOLUTION_BY_PERIOD else {}
+    res_bugs = (res_last.get("Open", 0) + res_last.get("In Progress", 0)
+                + res_last.get("Resolved", 0) + res_last.get("Deprioritized", 0))
+    diff = cat_bugs - res_bugs
+    if diff <= 0:
+        return ""
+    return (
+        f'<div style="margin-top:8px; padding:8px 12px; background:#f1f5f9; '
+        f'border-radius:6px; font-size:12px; color:#64748b; line-height:1.4;">'
+        f'Numbers differ from Issues page by <strong>{diff}</strong> — '
+        f'those bugs already had a Linear ticket created in a previous period.'
+        f'</div>'
+    )
 
 
 def _theme_row(t):
@@ -315,41 +334,124 @@ def render_key_takeaways():
     return "".join(blocks)
 
 
-def render_all_churned_summary():
-    reason_badge = {
-        "Performance": "badge-orange",
-        "Platform":    "badge-blue",
-        "AI behavior": "badge-red",
-    }
-    rows = []
-    for c in CHURNED:
-        bc = reason_badge.get(c["Reason"], "badge-blue")
-        rows.append(
-            f'<tr><td>{c["Customer"]}</td>'
-            f'<td style="color:var(--muted);">{c["Period"]}</td>'
-            f'<td><span class="badge {bc}">{c["Reason"]}</span></td></tr>'
-        )
-    return "\n".join(rows)
+# Category colors matching the chart
+_COMMENTARY_COLORS = {
+    "AI Behavior": "#4F8EF7",
+    "Platform & UI": "#F87171",
+    "WhatsApp Marketing": "#A78BFA",
+    "Integration": "#34D399",
+}
 
-
-def render_comm_rate_cards():
-    cards = []
-    for c in COMM_RATE_TREND:
-        rate = c["rate"]
-        if rate >= 75:
-            val_html = f'<div class="kpi-value kpi-green">{rate}%</div>'
-        elif rate >= 60:
-            val_html = f'<div class="kpi-value" style="color:var(--yellow);">{rate}%</div>'
+def render_slide2_commentary():
+    """Render category commentary blocks."""
+    blocks = []
+    for cs in CATEGORY_SPLIT:
+        cat = cs["category"]
+        count = cs["total"]
+        if count == 0:
+            continue
+        color = _COMMENTARY_COLORS.get(cat, "#94A3B8")
+        comment = SLIDE2_COMMENTARY.get(cat, "")
+        # Support both string (legacy) and list of bullets (new format)
+        if isinstance(comment, list):
+            import re as _re
+            def _bold(s):
+                return _re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', s)
+            bullets_html = "".join(
+                f'<li style="margin-bottom:6px; font-size:14px; color:var(--text); line-height:1.5;">{_bold(b)}</li>'
+                for b in comment
+            )
+            body = f'<ul style="margin:4px 0 0 20px; padding-left:16px;">{bullets_html}</ul>'
         else:
-            val_html = f'<div class="kpi-value kpi-red">{rate}%</div>'
-        cards.append(
-            f'<div class="kpi-card compact">'
-            f'<div class="kpi-label">{c["period"]}</div>'
-            f'{val_html}'
-            f'<div class="kpi-sub">{c["informed"]}/{c["resolved"]} informed</div>'
+            body = f'<p style="margin:0 0 0 20px; font-size:14px; color:var(--text); line-height:1.5;">{comment}</p>'
+        blocks.append(
+            f'<div style="margin-bottom:16px;">'
+            f'<div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">'
+            f'<span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:{color};"></span>'
+            f'<strong style="font-size:16px;">{cat}</strong>'
+            f'<span style="color:var(--muted); font-size:14px;">{count} issues</span>'
+            f'</div>'
+            f'{body}'
             f'</div>'
         )
-    return "\n".join(cards)
+    return "".join(blocks)
+
+
+def render_waterfall_chart():
+    """Render an HTML/CSS waterfall chart with bug/feature split per category."""
+    total = sum(cs["total"] for cs in CATEGORY_SPLIT)
+    if total == 0:
+        return "<p>No issues this period.</p>"
+    max_val = total  # total bar is the widest
+
+    rows = []
+    cumulative = 0
+    for cs in CATEGORY_SPLIT:
+        cat = cs["category"]
+        count = cs["total"]
+        bugs = cs["bugs"]
+        features = cs["features"]
+        if count == 0:
+            continue
+        color = _COMMENTARY_COLORS.get(cat, "#94A3B8")
+        offset_pct = cumulative / max_val * 100
+        width_pct = count / max_val * 100
+        cumulative += count
+
+        # Connector line from previous bar
+        connector = ""
+        if rows:  # not first row
+            connector = (
+                f'<div style="position:absolute; left:{offset_pct}%; top:-8px; '
+                f'width:1px; height:8px; background:#cbd5e1;"></div>'
+            )
+
+        rows.append(
+            f'<div style="display:flex; align-items:center; margin-bottom:24px; height:72px;">'
+            f'<div style="width:140px; text-align:right; padding-right:12px; font-size:14px; font-weight:600; color:var(--text); flex-shrink:0;">{cat}</div>'
+            f'<div style="flex:1; position:relative;">'
+            f'{connector}'
+            f'<div style="margin-left:{offset_pct}%; width:{width_pct}%; background:{color}; '
+            f'height:56px; border-radius:4px; min-width:2px;"></div>'
+            f'</div>'
+            f'<div style="width:200px; padding-left:10px; display:flex; align-items:center; gap:6px; flex-shrink:0;">'
+            f'<span style="font-size:16px; font-weight:700; color:var(--text); min-width:28px;">{count}</span>'
+            f'<span style="background:#fee2e2; color:#991b1b; border-radius:10px; padding:2px 7px; font-size:12px; font-weight:600;">'
+            f'\U0001f41b {bugs}</span>'
+            f'<span style="background:#ede9fe; color:#5b21b6; border-radius:10px; padding:2px 7px; font-size:12px; font-weight:600;">'
+            f'\U0001f4a1 {features}</span>'
+            f'</div>'
+            f'</div>'
+        )
+
+    # Connector to total
+    connector_total = (
+        f'<div style="position:absolute; left:0; top:-8px; '
+        f'width:1px; height:8px; background:#cbd5e1;"></div>'
+    )
+
+    # Total bar
+    total_bugs = sum(cs["bugs"] for cs in CATEGORY_SPLIT)
+    total_features = sum(cs["features"] for cs in CATEGORY_SPLIT)
+    rows.append(
+        f'<div style="border-top:2px solid #e2e8f0; margin-top:4px; padding-top:10px; '
+        f'display:flex; align-items:center; height:72px;">'
+        f'<div style="width:140px; text-align:right; padding-right:12px; font-size:14px; font-weight:700; color:var(--text); flex-shrink:0;">Total</div>'
+        f'<div style="flex:1; position:relative;">'
+        f'{connector_total}'
+        f'<div style="width:100%; background:#cbd5e1; height:56px; border-radius:4px;"></div>'
+        f'</div>'
+        f'<div style="width:200px; padding-left:10px; display:flex; align-items:center; gap:6px; flex-shrink:0;">'
+        f'<span style="font-size:16px; font-weight:700; color:var(--text); min-width:28px;">{total}</span>'
+        f'<span style="background:#fee2e2; color:#991b1b; border-radius:10px; padding:2px 7px; font-size:12px; font-weight:600;">'
+        f'\U0001f41b {total_bugs}</span>'
+        f'<span style="background:#ede9fe; color:#5b21b6; border-radius:10px; padding:2px 7px; font-size:12px; font-weight:600;">'
+        f'\U0001f4a1 {total_features}</span>'
+        f'</div>'
+        f'</div>'
+    )
+
+    return '<div style="display:flex; flex-direction:column; justify-content:center; height:100%;">' + "".join(rows) + '</div>'
 
 
 _SENTIMENT_STYLE = {
@@ -359,71 +461,71 @@ _SENTIMENT_STYLE = {
     "At Risk":   ("badge-red",    "⚠️"),
 }
 
-def render_churning_pipeline_table():
-    """All Churning customers — Customer / MRR / Days Since Contact / CS Sentiment / AI Res. Rate / Reason."""
-    if not CHURNING_PIPELINE:
-        return (
-            '<thead><tr><th>Customer</th><th style="text-align:right;">MRR</th>'
-            '<th>Days Since<br>Contact</th><th>CS Sentiment</th><th>AI Res.<br>Rate</th>'
-            '<th style="text-align:center;">Open<br>Issues</th><th>CS Owner</th><th>Reason</th></tr></thead>'
-            '<tbody><tr><td colspan="8" style="color:var(--muted);text-align:center;">'
-            'No customers at risk</td></tr></tbody>'
-        )
-    rows = []
-    for c in CHURNING_PIPELINE:
-        mrr_fmt = f'${c["mrr_raw"]:,.0f}' if c.get("mrr_raw") else '—'
+def _render_churn_row(c):
+    """Render a single row for the combined churn table."""
+    is_canceled = c.get("type") == "canceled"
+    dot_color = "var(--red)" if is_canceled else "var(--yellow)"
+    dot = f'<span style="color:{dot_color};font-size:16px;vertical-align:middle;">●</span>'
 
-        days = c.get("days_since_contact")
-        if days is not None:
-            days_int = int(days)
-            color = ("color:var(--red)" if days_int > 30
-                     else "color:var(--yellow)" if days_int > 14
-                     else "color:var(--text)")
-            days_html = f'<span style="{color};font-weight:600;">{days_int}d</span>'
-        else:
-            days_html = '<span style="color:var(--muted);">—</span>'
+    mrr_fmt = f'€{c["mrr_raw"]:,.0f}' if c.get("mrr_raw") else '—'
 
-        sentiment = c.get("cs_sentiment") or ""
-        if sentiment:
-            badge_cls, icon = _SENTIMENT_STYLE.get(sentiment, ("badge-blue", ""))
-            sentiment_html = f'<span class="badge {badge_cls}">{icon} {sentiment}</span>'
-        else:
-            sentiment_html = '<span style="color:var(--muted);">—</span>'
+    days = c.get("days_since_contact")
+    if days is not None:
+        days_int = int(days)
+        color = ("color:var(--red)" if days_int > 30
+                 else "color:var(--yellow)" if days_int > 14
+                 else "color:var(--text)")
+        days_html = f'<span style="{color};font-weight:600;">{days_int}d</span>'
+    else:
+        days_html = '<span style="color:var(--muted);">—</span>'
 
-        ai_rate = c.get("ai_resolution_rate")
-        if ai_rate is not None:
-            pct = round(ai_rate * 100) if ai_rate <= 1 else round(ai_rate)
-            ai_html = f'{pct}%'
-        else:
-            ai_html = '<span style="color:var(--muted);">—</span>'
+    sentiment = c.get("cs_sentiment") or ""
+    if sentiment:
+        badge_cls, icon = _SENTIMENT_STYLE.get(sentiment, ("badge-blue", ""))
+        sentiment_html = f'<span class="badge {badge_cls}">{icon} {sentiment}</span>'
+    else:
+        sentiment_html = '<span style="color:var(--muted);">—</span>'
 
-        open_n = c.get("open_issues")
-        if open_n is not None and open_n > 0:
-            open_html = f'<span style="font-weight:700;color:var(--red);">{open_n}</span>'
-        elif open_n == 0:
-            open_html = '<span style="color:var(--muted);">0</span>'
-        else:
-            open_html = '<span style="color:var(--muted);">—</span>'
+    ai_rate = c.get("ai_resolution_rate")
+    if ai_rate is not None:
+        pct = round(ai_rate * 100) if ai_rate <= 1 else round(ai_rate)
+        ai_html = f'{pct}%'
+    else:
+        ai_html = '<span style="color:var(--muted);">—</span>'
 
-        _owner_colors = {"Alex": "badge-blue", "Aya": "badge-purple"}
-        _owner_raw = c.get("cs_owner") or ""
-        owner = (f'<span class="badge {_owner_colors.get(_owner_raw, "badge-blue")}">{_owner_raw}</span>'
-                 if _owner_raw else '<span style="color:var(--muted);">—</span>')
+    open_n = c.get("open_issues")
+    if open_n is not None and open_n > 0:
+        open_html = f'<span style="font-weight:700;color:var(--red);">{open_n}</span>'
+    elif open_n == 0:
+        open_html = '<span style="color:var(--muted);">0</span>'
+    else:
+        open_html = '<span style="color:var(--muted);">—</span>'
 
-        rows.append(
-            f'<tr>'
-            f'<td>{c["name"]}</td>'
-            f'<td style="text-align:right;">{mrr_fmt}</td>'
-            f'<td style="text-align:center;">{days_html}</td>'
-            f'<td style="text-align:center;">{ai_html}</td>'
-            f'<td style="text-align:center;">{open_html}</td>'
-            f'<td>{sentiment_html}</td>'
-            f'<td>{owner}</td>'
-            f'<td style="color:var(--muted);">{c.get("reason") or "—"}</td>'
-            f'</tr>'
-        )
+    _owner_colors = {"Alex": "badge-blue", "Aya": "badge-purple"}
+    _owner_raw = c.get("cs_owner") or ""
+    owner = (f'<span class="badge {_owner_colors.get(_owner_raw, "badge-blue")}">{_owner_raw}</span>'
+             if _owner_raw else '<span style="color:var(--muted);">—</span>')
+
+    return (
+        f'<tr>'
+        f'<td style="text-align:center;">{dot}</td>'
+        f'<td>{c["name"]}</td>'
+        f'<td style="text-align:right;">{mrr_fmt}</td>'
+        f'<td style="text-align:center;">{days_html}</td>'
+        f'<td style="text-align:center;">{ai_html}</td>'
+        f'<td style="text-align:center;">{open_html}</td>'
+        f'<td>{sentiment_html}</td>'
+        f'<td>{owner}</td>'
+        f'<td style="color:var(--muted);">{c.get("reason") or "—"}</td>'
+        f'</tr>'
+    )
+
+
+def render_churn_combined_table():
+    """Combined table of canceled + churning customers for this period."""
     header = (
         '<thead><tr>'
+        '<th style="width:24px;"></th>'
         '<th>Customer</th>'
         '<th style="text-align:right;">MRR</th>'
         '<th style="text-align:center;">Days Since<br>Contact</th>'
@@ -434,40 +536,14 @@ def render_churning_pipeline_table():
         '<th>Reason</th>'
         '</tr></thead>'
     )
+    if not CHURN_COMBINED:
+        return (
+            header +
+            '<tbody><tr><td colspan="9" style="color:var(--muted);text-align:center;">'
+            'No churns this period</td></tr></tbody>'
+        )
+    rows = [_render_churn_row(c) for c in CHURN_COMBINED]
     return header + '<tbody>' + ''.join(rows) + '</tbody>'
-
-
-def render_tick_chart():
-    rows = []
-    for c in TOP_CUSTOMERS_BY_ISSUES:
-        bug_ticks  = '<div class="tick tick-bug"  title="Bug"></div>'  * c["bugs"]
-        feat_ticks = '<div class="tick tick-feat" title="Feature request"></div>' * c["features"]
-        rows.append(
-            f'<div class="tick-row">'
-            f'<div class="tick-label">{c["customer"]}</div>'
-            f'<div class="tick-bar">{bug_ticks}{feat_ticks}</div>'
-            f'<div class="tick-total">{c["issues"]}</div>'
-            f'</div>'
-        )
-    return "\n".join(rows)
-
-
-def render_flagged_customers():
-    rows = []
-    badge_class = {
-        "Both":        "badge-red",
-        "Wait time":   "badge-orange",
-        "Open issues": "badge-yellow",
-    }
-    for c in FLAGGED_CUSTOMERS:
-        bc = badge_class.get(c["Flag"], "badge-blue")
-        rows.append(
-            f'<tr><td>{c["Customer"]}</td>'
-            f'<td>{c["Days waiting"]}d</td>'
-            f'<td>{c["Open issues"]}</td>'
-            f'<td><span class="badge {bc}">{c["Flag"]}</span></td></tr>'
-        )
-    return "\n".join(rows)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -479,7 +555,7 @@ HTML = f"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>DAGs &amp; Churn — Biweekly Meeting</title>
+<title>Bug &amp; Churn — Weekly Meeting</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
@@ -558,7 +634,7 @@ HTML = f"""<!DOCTYPE html>
     flex: 1; background: var(--card); border-radius: 12px; box-shadow: var(--shadow);
     padding: 20px 22px;
   }}
-  .kpi-label {{ font-size: 13px; color: var(--muted); font-weight: 500; margin-bottom: 8px; }}
+  .kpi-label {{ font-size: 16px; color: var(--muted); font-weight: 500; margin-bottom: 8px; }}
   .kpi-value {{ font-size: 36px; font-weight: 800; color: var(--navy); line-height: 1; }}
   .kpi-sub {{ font-size: 13px; color: var(--muted); margin-top: 4px; }}
   .kpi-green {{ color: var(--green) !important; }}
@@ -567,9 +643,6 @@ HTML = f"""<!DOCTYPE html>
 
   /* ── COMPACT KPI (slide 2) ────────────────────────────────────────── */
   .kpi-card.compact .kpi-value {{ font-size: 28px; }}
-
-  /* ── COMM RATE GRID (slide 4) ─────────────────────────────────────── */
-  .comm-rate-grid {{ display: flex; gap: 16px; }}
 
   /* ── TABLES ──────────────────────────────────────────────────────── */
   table {{ width: 100%; border-collapse: collapse; font-size: 15px; }}
@@ -636,17 +709,6 @@ HTML = f"""<!DOCTYPE html>
   .legend-dot  {{ width: 11px; height: 11px; border-radius: 50%; display: inline-block; margin-right: 6px; }}
   .legend-item {{ font-size: 14px; color: var(--muted); display: flex; align-items: center; }}
 
-  /* ── TICK CHART (slide 6) ─────────────────────────────────────────── */
-  .tick-chart  {{ display: flex; flex-direction: column; gap: 12px; padding: 4px 0; }}
-  .tick-row    {{ display: flex; align-items: center; gap: 14px; }}
-  .tick-label  {{ width: 190px; font-size: 14px; font-weight: 500; color: var(--text);
-                  text-align: right; flex-shrink: 0;
-                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
-  .tick-bar    {{ display: flex; gap: 4px; flex: 1; align-items: center; flex-wrap: wrap; }}
-  .tick        {{ width: 16px; height: 28px; border-radius: 3px; }}
-  .tick-bug    {{ background: var(--red); }}
-  .tick-feat   {{ background: var(--blue); }}
-  .tick-total  {{ font-size: 13px; color: var(--muted); width: 28px; text-align: right; flex-shrink: 0; }}
 </style>
 </head>
 <body>
@@ -656,9 +718,7 @@ HTML = f"""<!DOCTYPE html>
   <div class="dot active" data-target="slide1" title="Bug Volume"></div>
   <div class="dot"        data-target="slide2" title="Categorization"></div>
   <div class="dot"        data-target="slide3" title="Resolution"></div>
-  <div class="dot"        data-target="slide4" title="Comms Loop"></div>
-  <div class="dot"        data-target="slide5" title="Churns"></div>
-  <div class="dot"        data-target="slide6" title="Top Customers"></div>
+  <div class="dot"        data-target="slide4" title="Churns"></div>
 </nav>
 
 <!-- ══════════════════════════════════════════════════════════════════════
@@ -666,17 +726,21 @@ HTML = f"""<!DOCTYPE html>
 ════════════════════════════════════════════════════════════════════════ -->
 <section class="slide" id="slide1">
   <header class="slide-header">
-    <span class="slide-num">01 / 06</span>
-    <h1 class="slide-title">Bug Volume &amp; Trend</h1>
+    <span class="slide-num">01 / 04</span>
+    <h1 class="slide-title">Issues Volume &amp; Trend</h1>
     <span class="slide-subtitle">Target: −15% per period</span>
   </header>
 
   <div class="slide-body">
     <div class="kpi-grid">
       <div class="kpi-card">
-        <div class="kpi-label">Bugs this period</div>
+        <div class="kpi-label">Issues this period</div>
         <div class="kpi-value kpi-blue">{KPI_BUGS_THIS_PERIOD}</div>
         <div class="kpi-sub">{KPI_PERIOD_LABEL}</div>
+        <div style="margin-top:6px;">
+          <span style="background:#fee2e2; color:#991b1b; border-radius:12px; padding:3px 9px; font-size:14px; font-weight:600;">\U0001f41b {KPI_BUGS_ONLY_CUR}</span>
+          <span style="background:#ede9fe; color:#5b21b6; border-radius:12px; padding:3px 9px; font-size:14px; font-weight:600;">\U0001f4a1 {KPI_FEATURES_CUR}</span>
+        </div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Period-over-period change</div>
@@ -691,10 +755,11 @@ HTML = f"""<!DOCTYPE html>
     </div>
 
     <div class="card" style="flex:1; margin-top:20px;">
-      <div class="card-title">Bugs received per period — Intercom vs Meetings vs −15% target</div>
+      <div class="card-title">Issues received per period — Intercom vs Meetings vs −15% target</div>
       <div class="chart-box">
         <canvas id="chart-volume"></canvas>
       </div>
+      {render_bug_feature_badges()}
     </div>
   </div>
 </section>
@@ -704,28 +769,23 @@ HTML = f"""<!DOCTYPE html>
 ════════════════════════════════════════════════════════════════════════ -->
 <section class="slide" id="slide2">
   <header class="slide-header">
-    <span class="slide-num">02 / 06</span>
-    <h1 class="slide-title">Bug Categorization</h1>
-    <span class="slide-subtitle">Type breakdown over time</span>
+    <span class="slide-num">02 / 04</span>
+    <h1 class="slide-title">Issue Breakdown — {REVIEW_PERIOD}</h1>
+    <span class="slide-subtitle">Category split &amp; what customers complained about</span>
   </header>
 
   <div class="slide-body">
-    <div class="row" style="flex:1; gap:20px;">
-      <div style="flex:2; display:flex; flex-direction:column; gap:16px;">
+    <div class="row" style="flex:1; gap:24px;">
+      <div style="flex:1; display:flex; flex-direction:column;">
         <div class="card" style="flex:1;">
-          <div class="card-title">Bug types per period (stacked)</div>
-          <div class="chart-box">
-            <canvas id="chart-stacked" style="max-height:360px;"></canvas>
-          </div>
-        </div>
-        <div class="kpi-grid">
-          {SLIDE2_MINI_KPIS}
+          <div class="card-title">Issues by category — {REVIEW_PERIOD}</div>
+          {render_waterfall_chart()}
         </div>
       </div>
       <div style="flex:1;">
-        <div class="card" style="height:100%;">
-          <div class="card-title">Key Takeaways &amp; Actions</div>
-          {render_key_takeaways()}
+        <div class="card" style="height:100%; overflow-y:auto;">
+          <div class="card-title">What customers reported</div>
+          {render_slide2_commentary()}
         </div>
       </div>
     </div>
@@ -737,18 +797,19 @@ HTML = f"""<!DOCTYPE html>
 ════════════════════════════════════════════════════════════════════════ -->
 <section class="slide" id="slide3">
   <header class="slide-header">
-    <span class="slide-num">03 / 06</span>
-    <h1 class="slide-title">Resolution Status</h1>
-    <span class="slide-subtitle">By period — Open / In Progress / Resolved</span>
+    <span class="slide-num">03 / 04</span>
+    <h1 class="slide-title">Bugs Focus: Resolution Status of Engineering Tickets in Linear</h1>
+    <span class="slide-subtitle">Bugs only — Open / In Progress / Resolved</span>
   </header>
 
   <div class="slide-body">
     <div class="row" style="flex:1; gap:24px;">
       <div class="card col" style="flex:1.4;">
-        <div class="card-title">Issue status by period</div>
+        <div class="card-title">Bug status by period</div>
         <div class="chart-box">
           <canvas id="chart-resolution-h" style="max-height:220px;"></canvas>
         </div>
+        {_render_slide3_note()}
       </div>
       <div class="card col" style="flex:1;">
         <div class="card-title">Resolution rate snapshots</div>
@@ -756,142 +817,73 @@ HTML = f"""<!DOCTYPE html>
           {render_resolution_rate_table()}
         </table>
         <div style="margin-top:12px; font-size:12px; color:var(--muted);">
-          % of issues resolved within timeframe from creation date
+          % of bugs resolved within timeframe from creation date
         </div>
       </div>
+    </div>
+
+    <div class="row" style="gap:24px; margin-top:16px;">
+      <div class="card col" style="flex:1.4;">
+        <div class="card-title">Open eng tickets by Linear priority</div>
+        <div class="chart-box">
+          <canvas id="chart-open-priority" style="max-height:220px;"></canvas>
+        </div>
+      </div>
+      <div style="flex:1;"></div>
     </div>
   </div>
 </section>
 
 <!-- ══════════════════════════════════════════════════════════════════════
-     SLIDE 4 — Customer Communication Loop
+     SLIDE 4 — Weekly Churn Trend
 ════════════════════════════════════════════════════════════════════════ -->
 <section class="slide" id="slide4">
   <header class="slide-header">
-    <span class="slide-num">04 / 06</span>
-    <h1 class="slide-title">Customer Communication Loop</h1>
-    <span class="slide-subtitle">Are we closing the loop after resolution?</span>
-  </header>
-
-  <div class="slide-body">
-    <div class="row" style="flex:1; gap:20px;">
-      <div class="card col">
-        <div class="card-title">Communication rate — per period</div>
-        <div style="font-size:13px; color:var(--muted); margin-bottom:4px;">
-          % of resolved issues where customer was informed · target: 90%
-        </div>
-        <div class="chart-box" style="flex:1;">
-          <canvas id="chart-comm-rate" style="max-height:320px;"></canvas>
-        </div>
-      </div>
-      <div class="card col">
-        <div class="card-title">Customers to flag</div>
-        <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">
-          Wait &gt; 10d or open issues &gt; 3
-        </div>
-        <table>
-          <thead>
-            <tr><th>Customer</th><th>Days waiting</th><th>Open issues</th><th>Flag</th></tr>
-          </thead>
-          <tbody>
-            {render_flagged_customers()}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ══════════════════════════════════════════════════════════════════════
-     SLIDE 5 — Churns & MRR Impact
-════════════════════════════════════════════════════════════════════════ -->
-<section class="slide" id="slide5">
-  <header class="slide-header">
-    <span class="slide-num">05 / 06</span>
-    <h1 class="slide-title">Churns &amp; MRR Impact</h1>
-    <span class="slide-subtitle">{_CUR_PERIOD_LONG}</span>
-  </header>
-
-  <div class="slide-body">
-    <div class="summary-grid">
-      <div class="summary-card" style="border-top:3px solid var(--yellow);">
-        <div class="summary-number" style="color:var(--yellow);">{CHURNING_COUNT}</div>
-        <div class="summary-label">Churning</div>
-        <div style="font-size:13px;color:var(--muted);">customers scheduled to leave</div>
-      </div>
-      <div class="summary-card amber-card">
-        <div class="summary-number" style="color:var(--yellow);">${CHURNING_MRR_TOTAL:,.0f}</div>
-        <div class="summary-label">MRR at risk</div>
-        <div style="font-size:13px;color:var(--muted);">total churning pipeline</div>
-      </div>
-    </div>
-
-    <div class="row" style="flex:1; gap:20px;">
-
-      <!-- LEFT: churning MRR stacked by cancel period -->
-      <div class="card col" style="flex:1; display:flex; flex-direction:column;">
-        <div class="card-title">Churning MRR — by subscription end date</div>
-        <div style="font-size:22px;font-weight:800;color:var(--navy);margin-bottom:2px;">${CHURNING_MRR_TOTAL:,.0f}</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">
-          When each at-risk customer's subscription ends
-        </div>
-        <div style="position:relative; flex:1; min-height:0;">
-          <canvas id="chart-churning-trend"></canvas>
-        </div>
-      </div>
-
-      <!-- RIGHT: full churning pipeline table -->
-      <div class="card col" style="flex:2; overflow-y:auto;">
-        <div class="card-title">Churning customers</div>
-        <table style="font-size:12px;">{render_churning_pipeline_table()}</table>
-      </div>
-
-    </div>
-
-  </div>
-</section>
-
-<!-- ══════════════════════════════════════════════════════════════════════
-     SLIDE 6 — Top Customers by Issue Volume
-════════════════════════════════════════════════════════════════════════ -->
-<section class="slide" id="slide6">
-  <header class="slide-header">
-    <span class="slide-num">06 / 06</span>
-    <h1 class="slide-title">Top Customers by Issue Volume</h1>
-    <span class="slide-subtitle">Who's driving most of the issues this period?</span>
+    <span class="slide-num">04 / 04</span>
+    <h1 class="slide-title">Weekly Churn Trend</h1>
+    <span class="slide-subtitle">Cancel-click date from Stripe</span>
   </header>
 
   <div class="slide-body">
     <div class="kpi-grid">
       <div class="kpi-card">
-        <div class="kpi-label">Total in-scope issues</div>
-        <div class="kpi-value kpi-blue">{TOTAL_ISSUES_S6}</div>
-        <div class="kpi-sub">{CUSTOMERS_COUNT_S6} customers · top 10 shown</div>
+        <div class="kpi-label">Churns this week</div>
+        <div class="kpi-value kpi-red">{_S5_CUR}</div>
+        <div class="kpi-sub">{KPI_PERIOD_LABEL} · €{_S5_MRR_CUR:,.0f} MRR</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Customers with 5+ issues</div>
-        <div class="kpi-value kpi-red">{CUSTOMERS_5PLUS}</div>
-        <div class="kpi-sub">Need attention this period</div>
+        <div class="kpi-label">Week-over-week change</div>
+        <div class="kpi-value {_s5_wow_color}">{S5_WOW_STR}</div>
+        <div class="kpi-sub">vs {KPI_PREV_LABEL}</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Top 10 concentration</div>
-        <div class="kpi-value kpi-red">{TOP10_PCT}%</div>
-        <div class="kpi-sub">Of all issues</div>
+        <div class="kpi-label">Cumulative change</div>
+        <div class="kpi-value {_s5_cum_color}">{S5_CUM_STR}</div>
+        <div class="kpi-sub">{_PERIOD_LABELS[0]} → {REVIEW_PERIOD}</div>
       </div>
     </div>
 
-    <div class="card" style="flex:1;">
-      <div class="card-title">Issues by customer — each tick is one issue</div>
-      <div class="tick-chart" style="margin-top:8px;">
-        {render_tick_chart()}
-      </div>
-      <div style="display:flex; gap:20px; margin-top:16px; font-size:13px; color:var(--muted);">
-        <span><span class="legend-dot" style="background:var(--red);display:inline-block;width:16px;height:16px;border-radius:3px;vertical-align:middle;margin-right:6px;"></span>Bug</span>
-        <span><span class="legend-dot" style="background:var(--blue);display:inline-block;width:16px;height:16px;border-radius:3px;vertical-align:middle;margin-right:6px;"></span>Feature request</span>
+    <div class="card" style="flex:1; margin-top:8px;">
+      <div class="card-title">Cancel-clicks per week — Canceled vs Still Churning</div>
+      <div class="chart-box">
+        <canvas id="chart-churn-volume"></canvas>
       </div>
     </div>
+
+    <div class="card" style="max-height:320px; overflow-y:auto;">
+      <div class="card-title">
+        Churns this week
+        <span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:8px;">
+          <span style="color:var(--red);">●</span> canceled &nbsp;
+          <span style="color:var(--yellow);">●</span> churning
+        </span>
+      </div>
+      <table style="font-size:12px;">{render_churn_combined_table()}</table>
+    </div>
+
   </div>
 </section>
+
 
 
 <!-- ══════════════════════════════════════════════════════════════════════
@@ -906,16 +898,14 @@ const PERIODS        = {json.dumps(PERIODS)};
 const TARGET         = {json.dumps(TARGET_LINE)};
 const BUG_INTERCOM   = {json.dumps(BUG_SOURCE_INTERCOM)};
 const BUG_MEETINGS   = {json.dumps(BUG_SOURCE_MEETINGS)};
+const BUG_ONLY_COUNT = {json.dumps(BUG_ONLY_COUNT)};
+const FEATURE_COUNT  = {json.dumps(FEATURE_COUNT)};
+const BUG_VOLUME     = {json.dumps(BUG_VOLUME)};
+const MTG_COUNT      = {json.dumps(MEETINGS_PER_PERIOD)};
 const BUG_TYPES      = {json.dumps(BUG_TYPES)};
 const TYPE_NAMES     = {json.dumps(BUG_TYPE_NAMES)};
 const COLORS         = ['#4F8EF7','#F87171','#A78BFA','#34D399','#FBBF24'];
 const RES_BY_PERIOD   = {json.dumps(RESOLUTION_BY_PERIOD)};
-const CHURNING_PIPELINE    = {json.dumps(CHURNING_PIPELINE)};
-const TOP_CUSTOMERS   = {json.dumps(TOP_CUSTOMERS_BY_ISSUES)};
-const COMM_PERIODS    = {json.dumps([c["period"] for c in COMM_RATE_TREND])};
-const COMM_RATES      = {json.dumps([c["rate"] for c in COMM_RATE_TREND])};
-const COMM_INFORMED   = {json.dumps([c["informed"] for c in COMM_RATE_TREND])};
-const COMM_RESOLVED_N = {json.dumps([c["resolved"] for c in COMM_RATE_TREND])};
 
 // ── CHART 1 — Stacked bars (Intercom + Meetings) + target line ───────
 new Chart(document.getElementById('chart-volume'), {{
@@ -939,6 +929,30 @@ new Chart(document.getElementById('chart-volume'), {{
         borderRadius: 6,
         stack: 'bugs',
         order: 1,
+        datalabels: {{
+          labels: {{
+            total: {{
+              display: true,
+              anchor: 'end',
+              align: 'end',
+              formatter: (v, ctx) => BUG_VOLUME[ctx.dataIndex],
+              font: {{ size: 16, weight: 'bold' }},
+              color: '#334155',
+            }},
+            meetingCount: {{
+              display: (ctx) => MTG_COUNT[ctx.dataIndex] > 0,
+              anchor: 'end',
+              align: 'start',
+              offset: 4,
+              formatter: (v, ctx) => MTG_COUNT[ctx.dataIndex] + ' mtgs',
+              font: {{ size: 11, weight: '600' }},
+              color: '#7C3AED',
+              backgroundColor: 'rgba(167,139,250,0.15)',
+              borderRadius: 8,
+              padding: {{ top: 2, bottom: 2, left: 6, right: 6 }},
+            }}
+          }}
+        }},
       }},
       {{
         type: 'line',
@@ -962,7 +976,7 @@ new Chart(document.getElementById('chart-volume'), {{
       legend: {{ position: 'top', labels: {{ font: {{ size: 18 }}, padding: 20 }} }}
     }},
     scales: {{
-      y: {{ stacked: true, beginAtZero: true, grid: {{ color: '#f1f5f9' }},
+      y: {{ stacked: true, beginAtZero: true, grid: {{ display: false }},
             ticks: {{ font: {{ size: 14 }} }} }},
       x: {{ stacked: true, grid: {{ display: false }},
             ticks: {{ font: {{ size: 15 }} }} }}
@@ -970,87 +984,7 @@ new Chart(document.getElementById('chart-volume'), {{
   }}
 }});
 
-// ── CHART 2 — Stacked bar by bug type ────────────────────────────────
-new Chart(document.getElementById('chart-stacked'), {{
-  type: 'bar',
-  data: {{
-    labels: PERIODS,
-    datasets: TYPE_NAMES.map((name, i) => ({{
-      label: name,
-      data: BUG_TYPES.map(p => p[i]),
-      backgroundColor: COLORS[i],
-      borderRadius: i === TYPE_NAMES.length - 1 ? 6 : 0,
-    }}))
-  }},
-  options: {{
-    responsive: true,
-    plugins: {{
-      datalabels: {{ display: false }},
-      legend: {{ position: 'right', labels: {{ boxWidth: 12, padding: 14 }} }}
-    }},
-    scales: {{
-      x: {{ stacked: true, grid: {{ display: false }} }},
-      y: {{ stacked: true, beginAtZero: true, grid: {{ color: '#f1f5f9' }} }}
-    }}
-  }}
-}});
-
-// ── CHART 4 — Communication rate bar + 90% target line ───────────────
-new Chart(document.getElementById('chart-comm-rate'), {{
-  data: {{
-    labels: COMM_PERIODS,
-    datasets: [
-      {{
-        type: 'bar',
-        label: 'Informed rate',
-        data: COMM_RATES,
-        backgroundColor: 'rgba(251,191,36,0.85)',
-        borderRadius: 8,
-        order: 1,
-        datalabels: {{
-          anchor: 'end',
-          align: 'end',
-          formatter: v => v + '%',
-          font: {{ size: 17, weight: 'bold' }},
-          color: '#1e293b',
-        }},
-      }},
-      {{
-        type: 'line',
-        label: '90% target',
-        data: [90, 90, 90],
-        borderColor: '#F87171',
-        borderDash: [6, 4],
-        borderWidth: 2.5,
-        pointRadius: 0,
-        fill: false,
-        order: 0,
-        datalabels: {{ display: false }},
-      }}
-    ]
-  }},
-  options: {{
-    responsive: true,
-    layout: {{ padding: {{ top: 28 }} }},
-    plugins: {{
-      legend: {{ position: 'top', labels: {{ font: {{ size: 14 }}, padding: 16 }} }},
-      tooltip: {{
-        callbacks: {{
-          label: function(ctx) {{
-            if (ctx.dataset.type === 'line') return '90% target';
-            const i = ctx.dataIndex;
-            return ctx.raw + '% (' + COMM_INFORMED[i] + '/' + COMM_RESOLVED_N[i] + ' informed)';
-          }}
-        }}
-      }}
-    }},
-    scales: {{
-      y: {{ min: 0, max: 100, grid: {{ color: '#f1f5f9' }},
-            ticks: {{ callback: v => v + '%', font: {{ size: 14 }} }} }},
-      x: {{ grid: {{ display: false }}, ticks: {{ font: {{ size: 15 }} }} }}
-    }}
-  }}
-}});
+// ── (Chart 2 replaced by HTML waterfall) ─────────────────────────────
 
 // ── CHART 3 — Horizontal stacked bar (resolution by period) ──────────
 new Chart(document.getElementById('chart-resolution-h'), {{
@@ -1075,7 +1009,24 @@ new Chart(document.getElementById('chart-resolution-h'), {{
         data: RES_BY_PERIOD.map(p => p.Resolved),
         backgroundColor: '#34D399',
         stack: 'status',
+      }},
+      {{
+        label: 'Deprioritized',
+        data: RES_BY_PERIOD.map(p => p.Deprioritized || 0),
+        backgroundColor: '#D1D5DB',
+        stack: 'status',
         borderRadius: 4,
+        datalabels: {{
+          display: true,
+          anchor: 'end',
+          align: 'end',
+          formatter: (v, ctx) => {{
+            const p = RES_BY_PERIOD[ctx.dataIndex];
+            return p.Open + p['In Progress'] + p.Resolved + (p.Deprioritized || 0);
+          }},
+          font: {{ size: 14, weight: 'bold' }},
+          color: '#334155',
+        }},
       }},
     ]
   }},
@@ -1087,60 +1038,144 @@ new Chart(document.getElementById('chart-resolution-h'), {{
       legend: {{ position: 'top', labels: {{ font: {{ size: 15 }}, padding: 16 }} }}
     }},
     scales: {{
-      x: {{ stacked: true, beginAtZero: true, grid: {{ color: '#f1f5f9' }} }},
+      x: {{ stacked: true, beginAtZero: true, grid: {{ display: false }} }},
       y: {{ stacked: true, grid: {{ display: false }}, ticks: {{ font: {{ size: 14 }} }} }}
     }}
   }}
 }});
 
-// ── CHART 5 — Churning MRR stacked by cancel period ──────────────────
-(function() {{
-  const PERIOD_BOUNDS = [
-    {{ label: '{PERIODS[0]}', end: '{PERIOD_END_DATES[0] if PERIOD_END_DATES else ""}' }},
-    {{ label: '{PERIODS[1]}', end: '{PERIOD_END_DATES[1] if len(PERIOD_END_DATES) > 1 else ""}' }},
-    {{ label: '{PERIODS[2]}', end: '{PERIOD_END_DATES[2] if len(PERIOD_END_DATES) > 2 else ""}' }},
-    {{ label: 'Later',        end: '9999-12-31' }},
-  ];
-  function bucket(cancelDate) {{
-    if (!cancelDate) return 3;
-    for (let i = 0; i < PERIOD_BOUNDS.length; i++) {{
-      if (cancelDate <= PERIOD_BOUNDS[i].end) return i;
-    }}
-    return 3;
-  }}
-  const SHADES = ['#D97706','#FBBF24','#F59E0B','#FDE68A','#B45309','#FEF3C7','#92400E','#78350F','#FFFBEB','#FCD34D','#A16207'];
-  let si = 0;
-  const datasets = CHURNING_PIPELINE.map(c => {{
-    const data = [0, 0, 0, 0];
-    data[bucket(c.churning_since)] = c.mrr_raw;
-    return {{
-      label: c.name, data,
-      backgroundColor: SHADES[si++ % SHADES.length],
-      stack: 'ch', borderRadius: 4, datalabels: {{ display: false }},
-    }};
-  }});
-  new Chart(document.getElementById('chart-churning-trend'), {{
-    type: 'bar',
-    data: {{ labels: PERIOD_BOUNDS.map(p => p.label), datasets }},
-    options: {{
-      responsive: true, maintainAspectRatio: false,
-      plugins: {{
-        legend: {{ display: false }},
-        datalabels: {{ display: false }},
-        tooltip: {{ callbacks: {{ label: ctx => ctx.raw ? ctx.dataset.label + ': $' + ctx.raw.toLocaleString() : null }} }}
+// ── CHART 3b — Open bugs by Linear priority (horizontal stacked) ────
+const OPEN_BY_PRIO = {json.dumps(OPEN_BY_PRIORITY)};
+
+new Chart(document.getElementById('chart-open-priority'), {{
+  type: 'bar',
+  data: {{
+    labels: PERIODS,
+    datasets: [
+      {{
+        label: 'Low',
+        data: OPEN_BY_PRIO.map(p => p.Low),
+        backgroundColor: '#D5DCE5',
+        hoverBackgroundColor: '#A8B8CC',
+        stack: 'prio',
       }},
-      scales: {{
-        x: {{ stacked: true, grid: {{ display: false }} }},
-        y: {{ stacked: true, beginAtZero: true,
-              ticks: {{ callback: v => '$' + v.toLocaleString() }},
-              grid: {{ color: '#f1f5f9' }} }}
-      }}
+      {{
+        label: 'Medium',
+        data: OPEN_BY_PRIO.map(p => p.Medium),
+        backgroundColor: '#FDE68A',
+        hoverBackgroundColor: '#FACC15',
+        stack: 'prio',
+      }},
+      {{
+        label: 'High',
+        data: OPEN_BY_PRIO.map(p => p.High),
+        backgroundColor: '#FDBA74',
+        hoverBackgroundColor: '#FB923C',
+        stack: 'prio',
+      }},
+      {{
+        label: 'Urgent',
+        data: OPEN_BY_PRIO.map(p => p.Urgent),
+        backgroundColor: '#FCA5A5',
+        hoverBackgroundColor: '#F87171',
+        stack: 'prio',
+        borderRadius: 4,
+        datalabels: {{
+          display: true,
+          anchor: 'end',
+          align: 'end',
+          formatter: (v, ctx) => {{
+            const p = OPEN_BY_PRIO[ctx.dataIndex];
+            return p.Urgent + p.High + p.Medium + p.Low;
+          }},
+          font: {{ size: 14, weight: 'bold' }},
+          color: '#334155',
+        }},
+      }},
+    ]
+  }},
+  options: {{
+    indexAxis: 'y',
+    responsive: true,
+    plugins: {{
+      datalabels: {{ display: false }},
+      legend: {{ position: 'top', labels: {{ font: {{ size: 15 }}, padding: 16 }} }}
+    }},
+    scales: {{
+      x: {{ stacked: true, beginAtZero: true, grid: {{ display: false }} }},
+      y: {{ stacked: true, grid: {{ display: false }}, ticks: {{ font: {{ size: 14 }} }} }}
     }}
-  }});
-}})();
+  }}
+}});
+
+// ── CHART 5 — Weekly churn trend (stacked: Canceled + Still Churning) ──
+const CHURN_CANCELED  = {json.dumps(CHURN_CANCELED_COUNT)};
+const CHURN_CHURNING  = {json.dumps(CHURN_CHURNING_COUNT)};
+const CHURN_TOTAL     = {json.dumps(CHURN_VOLUME)};
+
+new Chart(document.getElementById('chart-churn-volume'), {{
+  data: {{
+    labels: PERIODS,
+    datasets: [
+      {{
+        type: 'bar',
+        label: 'Canceled',
+        data: CHURN_CANCELED,
+        backgroundColor: '#F87171',
+        stack: 's',
+        borderRadius: 0,
+        order: 1,
+      }},
+      {{
+        type: 'bar',
+        label: 'Still churning',
+        data: CHURN_CHURNING,
+        backgroundColor: '#FBBF24',
+        stack: 's',
+        borderRadius: 6,
+        order: 1,
+        datalabels: {{
+          display: true,
+          anchor: 'end',
+          align: 'end',
+          formatter: (v, ctx) => CHURN_TOTAL[ctx.dataIndex],
+          font: {{ size: 16, weight: 'bold' }},
+          color: '#334155',
+        }},
+      }},
+      {{
+        type: 'line',
+        label: 'Total trend',
+        data: CHURN_TOTAL.map((v, i) => (i === 0 || i === CHURN_TOTAL.length - 1) ? v : null),
+        spanGaps: true,
+        borderColor: '#F87171',
+        borderDash: [6, 4],
+        borderWidth: 2,
+        pointBackgroundColor: '#F87171',
+        pointRadius: 5,
+        fill: false,
+        tension: 0,
+        order: 0,
+      }},
+    ]
+  }},
+  options: {{
+    responsive: true,
+    plugins: {{
+      datalabels: {{ display: false }},
+      legend: {{ position: 'top', labels: {{ font: {{ size: 18 }}, padding: 20 }} }}
+    }},
+    scales: {{
+      y: {{ stacked: true, beginAtZero: true, grid: {{ display: false }},
+            ticks: {{ stepSize: 1, font: {{ size: 14 }} }} }},
+      x: {{ stacked: true, grid: {{ display: false }},
+            ticks: {{ font: {{ size: 15 }} }} }}
+    }}
+  }}
+}});
 
 // ── DOT NAV + ARROW KEYS ─────────────────────────────────────────────
-const slides = ['slide1','slide2','slide3','slide4','slide5','slide6'];
+const slides = ['slide1','slide2','slide3','slide4'];
 const dots   = document.querySelectorAll('.dot');
 
 function activateDot(idx) {{
@@ -1212,7 +1247,7 @@ def _archive():
         print(f"⚠️  Skipping archive — no period_ranges entry for {CURRENT_PERIOD}")
         return
 
-    folder_name = f"CS_biweekly_{_fmt_date(cur['start'])}-{_fmt_date(cur['end'])}"
+    folder_name = f"CS_weekly_{_fmt_date(cur['start'])}-{_fmt_date(cur['end'])}"
     project_root = os.path.dirname(os.path.abspath(__file__))
     meetings_dir = os.path.join(project_root, "meetings")
     archive_dir  = os.path.join(meetings_dir, folder_name)

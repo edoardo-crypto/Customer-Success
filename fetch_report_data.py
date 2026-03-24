@@ -1,7 +1,7 @@
 """
 fetch_report_data.py
 
-WHEN TO RUN: Before every biweekly DAGs & Churn meeting (every 2 weeks).
+WHEN TO RUN: Before every weekly Bug & Churn meeting.
 Run again on Sunday night / Monday morning for the most up-to-date data.
 
 Fetches live data from Notion Issues Table, MCT, and Stripe.
@@ -14,11 +14,13 @@ Also auto-generates Key Takeaways (Slide 2) and freezes resolution snapshots.
 
 import json
 import os
+import re
 import sys
 import time
 import requests
 from datetime import datetime, date, timedelta
 from collections import defaultdict
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -26,8 +28,9 @@ load_dotenv()
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 
 NOTION_TOKEN      = os.environ["NOTION_TOKEN"]
-STRIPE_KEY        = os.environ.get("STRIPE_KEY", "")   # not used; optional for CI
+STRIPE_KEY        = os.environ.get("STRIPE_KEY", "")
 ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
+LINEAR_TOKEN      = os.environ.get("LINEAR_TOKEN") or "***REMOVED***"
 
 ISSUES_DB_ID = "bd1ed48de20e426f8bebeb8e700d19d8"
 MCT_DS_ID    = "3ceb1ad0-91f1-40db-945a-c51c58035898"
@@ -51,38 +54,19 @@ NOTION_HDR_V2 = {
 EPOCH_START = date(2026, 2, 16)  # First period's Monday — never changes
 
 
-def compute_rolling_periods(today=None):
-    today = today or date.today()
-    window_idx = max((today - EPOCH_START).days // 14, 0)
-
-    def window_range(idx):
-        s = EPOCH_START + timedelta(days=idx * 14)
-        e = s + timedelta(days=13)
-        return s.isoformat(), e.isoformat()
-
-    def fmt_display(label, s_iso, e_iso):
-        s, e = date.fromisoformat(s_iso), date.fromisoformat(e_iso)
-        return f"{label} ({s.strftime('%b')} {s.day} – {e.strftime('%b')} {e.day})"
-
-    if window_idx <= 2:
-        # Ramp-up: CURRENT advances P1 → P2 → P3 over the first 3 periods
-        periods = []
-        for i, lbl in enumerate(["P1", "P2", "P3"]):
-            s, e = window_range(i)
-            periods.append({"label": lbl, "display": fmt_display(lbl, s, e), "start": s, "end": e})
-        current = ["P1", "P2", "P3"][window_idx]
-    else:
-        # Steady-state rolling: P3 = current, P2 = previous, P1 = 2 ago
-        periods = []
-        for i, lbl in enumerate(["P1", "P2", "P3"]):
-            s, e = window_range(window_idx - 2 + i)
-            periods.append({"label": lbl, "display": fmt_display(lbl, s, e), "start": s, "end": e})
-        current = "P3"
-
-    return periods, current
-
-
-PERIOD_RANGES, CURRENT_PERIOD = compute_rolling_periods()
+PERIOD_RANGES = [
+    {"label": "W1", "display": "W1 (Feb 16–22)",
+     "start": "2026-02-16", "end": "2026-02-22"},
+    {"label": "W2", "display": "W2 (Feb 23–Mar 1)",
+     "start": "2026-02-23", "end": "2026-03-01"},
+    {"label": "W3", "display": "W3 (Mar 2–8)",
+     "start": "2026-03-02", "end": "2026-03-08"},
+    {"label": "W4", "display": "W4 (Mar 9–15)",
+     "start": "2026-03-09", "end": "2026-03-15"},
+    {"label": "W5", "display": "W5 (Mar 16–22)",
+     "start": "2026-03-16", "end": "2026-03-22"},
+]
+CURRENT_PERIOD = "W5"
 TODAY = date.today()
 
 # ── ISSUE CLASSIFICATION ──────────────────────────────────────────────────────
@@ -97,22 +81,32 @@ FEATURE_TYPES_SET = {"New feature request", "Feature improvement", "Feature Impr
 # Explicitly excluded from all counts
 EXCLUDE_TYPES_SET = {"No Issue", "Config Issue"}
 
-# Notion Category → display name for slide 2 (maps to one of 6 chart buckets)
-# Items with no/unknown category → "Uncategorized"
+# Notion Category → display name for slide 2 (maps to one of 4 chart buckets)
+# Items with no/unknown category → excluded from chart
 CATEGORY_DISPLAY = {
-    "Feature request":   "Feature request",
-    "New feature":       "Feature request",   # legacy value — map to new name
-    "AI Behavior":       "AI Behavior",
-    "Integration":       "Integration",
-    "Platform & UI":     "Platform & UI",
-    "Billing & Account": "Billing & Account",
-    # Everything else collapses into "Uncategorized"
+    "AI Behavior":        "AI Behavior",
+    "Platform & UI":      "Platform & UI",
+    "WhatsApp Marketing": "WhatsApp Marketing",
+    "Integration":        "Integration",
+    # Legacy values — reclassified by backfill, but mapped here as fallback
+    "Feature request":    "WhatsApp Marketing",  # if somehow still present
+    "New feature":        "WhatsApp Marketing",  # legacy
+    "Billing & Account":  "Integration",         # legacy
 }
-# Exactly 5 named Notion category buckets — issues with no/unknown category are excluded from the chart
-CATEGORY_BUCKETS = ["Feature request", "AI Behavior", "Integration", "Platform & UI", "Billing & Account"]
+# 4 named Notion category buckets — issues with no/unknown category are excluded from the chart
+CATEGORY_BUCKETS = ["AI Behavior", "Platform & UI", "WhatsApp Marketing", "Integration"]
 
-VALID_CATEGORIES    = ["Feature request", "AI Behavior", "Integration", "Platform & UI", "Billing & Account"]
+# Categories the classifier may assign (and that are valid in Notion)
+VALID_CATEGORIES = ["AI Behavior", "Platform & UI", "WhatsApp Marketing", "Integration"]
+# Old categories being retired — issues with these will be reclassified by backfill
+_RETIRED_CATEGORIES = {"Feature request", "New feature", "Billing & Account"}
 CLASSIFY_BATCH_SIZE = 20
+
+# ── GCAL CONFIG ──────────────────────────────────────────────────────────────
+
+CS_TEAM_EMAILS = ["alex@konvoai.com", "aya@konvoai.com"]
+GCAL_SCOPES    = ["https://www.googleapis.com/auth/calendar.readonly"]
+PROJECT_DIR    = Path(__file__).resolve().parent
 
 
 # ── NOTION HELPERS ────────────────────────────────────────────────────────────
@@ -194,6 +188,11 @@ def get_rollup_number(page, prop_name):
     return prop.get("rollup", {}).get("number")
 
 
+def get_url(page, prop_name):
+    prop = page.get("properties", {}).get(prop_name)
+    return prop.get("url") or "" if prop else ""
+
+
 def get_rollup_select_names(page, prop_name):
     """Return list of names from a rollup whose array contains select items."""
     prop = page.get("properties", {}).get(prop_name)
@@ -216,6 +215,119 @@ def period_for_date(d_str):
         if date_in_period(d_str, p):
             return p["label"]
     return None
+
+
+# ── GCAL HELPERS ─────────────────────────────────────────────────────────────
+
+def _get_gcal_creds():
+    """OAuth2 credentials for Google Calendar (reuses token.json)."""
+    try:
+        from google.oauth2.credentials import Credentials
+        from google.auth.transport.requests import Request
+        from google_auth_oauthlib.flow import InstalledAppFlow
+    except ImportError:
+        return None, "google libs not installed"
+
+    client_secrets = PROJECT_DIR / "client_secrets.json"
+    token_file     = PROJECT_DIR / "token.json"
+
+    if not client_secrets.exists():
+        return None, "client_secrets.json not found"
+
+    creds = (
+        Credentials.from_authorized_user_file(str(token_file), GCAL_SCOPES)
+        if token_file.exists() else None
+    )
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow  = InstalledAppFlow.from_client_secrets_file(str(client_secrets), GCAL_SCOPES)
+            creds = flow.run_local_server(port=0)
+        token_file.write_text(creds.to_json())
+
+    return creds, None
+
+
+def fetch_gcal_meetings(time_min_iso, time_max_iso):
+    """Fetch customer meetings for Alex & Aya. Returns [(date_str, owner), ...]."""
+    print("📅 Fetching GCal customer meetings…")
+
+    creds, err = _get_gcal_creds()
+    if err:
+        print(f"   GCal skipped: {err}")
+        return []
+
+    try:
+        from googleapiclient.discovery import build
+    except ImportError:
+        print("   GCal skipped: google libs not installed")
+        return []
+
+    service = build("calendar", "v3", credentials=creds)
+
+    cal_map, pt = {}, None
+    while True:
+        resp = service.calendarList().list(pageToken=pt).execute()
+        for cal in resp.get("items", []):
+            cal_id = cal.get("id", "").lower()
+            for email in CS_TEAM_EMAILS:
+                name = email.split("@")[0]
+                if email.lower() in cal_id and name not in cal_map:
+                    cal_map[name] = cal["id"]
+                    print(f"   Calendar: {email} -> {cal['id']}")
+        pt = resp.get("nextPageToken")
+        if not pt:
+            break
+
+    if not cal_map:
+        print("   No CS team calendars found")
+        return []
+
+    meetings = []
+    for owner_name, cal_id in cal_map.items():
+        pt, count = None, 0
+        while True:
+            resp = service.events().list(
+                calendarId=cal_id,
+                timeMin=time_min_iso, timeMax=time_max_iso,
+                singleEvents=True, orderBy="startTime",
+                pageToken=pt, maxResults=2500,
+            ).execute()
+
+            for item in resp.get("items", []):
+                start    = item.get("start", {})
+                raw_date = start.get("date") or start.get("dateTime", "")[:10]
+                if not raw_date:
+                    continue
+
+                attendees = [a.get("email", "").lower() for a in item.get("attendees", [])]
+                has_external = any(
+                    not e.endswith("@konvoai.com")
+                    and not e.endswith("@resource.calendar.google.com")
+                    for e in attendees
+                )
+                if not has_external:
+                    continue
+
+                meetings.append((raw_date, owner_name))
+                count += 1
+
+            pt = resp.get("nextPageToken")
+            if not pt:
+                break
+
+        print(f"   {owner_name}: {count} customer meetings")
+
+    return meetings
+
+
+def count_meetings_per_period(meetings):
+    """Total customer meetings (Alex + Aya) per period."""
+    return [
+        sum(1 for d, _ in meetings if p["start"] <= d <= p["end"])
+        for p in PERIOD_RANGES
+    ]
 
 
 # ── FETCH RAW DATA ────────────────────────────────────────────────────────────
@@ -242,11 +354,20 @@ CLASSIFY_PROMPT = """\
 Classify each customer-support issue into exactly one category.
 
 VALID CATEGORIES (use these exact strings):
-- Feature request
-- AI Behavior
-- Integration
-- Platform & UI
-- Billing & Account
+- AI Behavior       → AI responses, product recommendations, automated conversational AI, \
+AI giving wrong info, AI not responding, AI recommending wrong product
+- Platform & UI     → dashboard bugs, frontend not loading, app performance, onboarding screens, \
+inbox slowness, UI glitches, flows stopping mid-execution
+- WhatsApp Marketing → broadcast campaigns, CRM marketing sends, scheduled/bulk message sending, \
+broadcast not sending, UTM tracking, non-AI marketing messages, CRM campaign failures
+- Integration       → third-party connections (Shopify sync, Gorgias, external APIs, email/Outlook, \
+social channels, livechat), data not syncing between tools
+
+RULES:
+- Broadcast/campaign sending issues → WhatsApp Marketing (NOT Integration)
+- AI recommending wrong product → AI Behavior (NOT Platform & UI)
+- App slow / UI broken / inbox not loading → Platform & UI
+- API/webhook/sync with external tool → Integration
 
 ISSUES:
 {issues_json}
@@ -326,8 +447,9 @@ def classify_missing_categories(raw_issues):
     unclassified = []
     for page in raw_issues:
         existing = get_select(page, "Category")
-        if existing:
-            continue  # already classified — skip
+        if existing and existing not in _RETIRED_CATEGORIES:
+            continue  # already classified with a valid category — skip
+        # Fall through: either no category or a retired one → needs reclassification
         title   = get_title(page, "Issue Title")
         summary = get_rich_text(page, "Summary")
         if not title and not summary:
@@ -387,6 +509,7 @@ def parse_issue(page):
         "customer_ids": get_relation_ids(page, "Customer"),
         "cs_owner":     cs_owner,
         "title":        get_title(page, "Issue Title"),
+        "linear_url":   get_url(page, "Linear Ticket URL"),
         "is_bug":       issue_type in BUG_TYPES_SET,
         "is_feature":   issue_type in FEATURE_TYPES_SET,
         "is_excluded":  is_excluded,
@@ -415,21 +538,27 @@ def build_slide1(issues_by_period):
     bug_volume          = []
     bug_source_intercom = []
     bug_source_meetings = []
+    bug_only_count      = []
+    feature_count       = []
 
     for p in PERIOD_RANGES:
         bugs = [i for i in issues_by_period[p["label"]] if i["is_in_scope"]]
         bug_volume.append(len(bugs))
         bug_source_intercom.append(sum(1 for i in bugs if i["source"] == "Intercom"))
         bug_source_meetings.append(sum(1 for i in bugs if i["source"] == "Meeting"))
+        bug_only_count.append(sum(1 for i in bugs if i["is_bug"]))
+        feature_count.append(sum(1 for i in bugs if i["is_feature"]))
 
     p1 = bug_volume[0] or 1
-    target_line = [p1, round(p1 * 0.85, 1), round(p1 * 0.85 ** 2, 1)]
+    target_line = [round(p1 * 0.85 ** i, 1) for i in range(len(PERIOD_RANGES))]
 
     return {
         "bug_volume":          bug_volume,
         "target_line":         target_line,
         "bug_source_intercom": bug_source_intercom,
         "bug_source_meetings": bug_source_meetings,
+        "bug_only_count":      bug_only_count,
+        "feature_count":       feature_count,
     }
 
 
@@ -439,32 +568,41 @@ def build_slide1(issues_by_period):
 # Each entry: (list-of-keywords-in-title-lowercase, display-label)
 # Keywords are matched against the issue title (lowercased). First match wins.
 _THEMES_BY_CATEGORY = {
-    "Platform & UI": [
-        (["flow", "flows"],                                    "Flows stopping mid-execution"),
-        (["broadcast", "campaign send"],                       "Broadcasts not sending"),
-        (["inbox", "loading", "slow", "performance"],          "Inbox & performance issues"),
-        (["handover", "transfer", "access", "notification"],   "Handover & access failures"),
-    ],
     "AI Behavior": [
-        (["discount", "wrong product", "wrong variation",
-          "outdated", "incorrect", "didn't ident"],            "AI using wrong or outdated information"),
-        (["confirm", "didn't execute", "failed to update"],    "AI confirming actions not completed"),
+        (["wrong product", "wrong variation", "recommend",
+          "product rec", "incorrect product"],                 "AI product recommendations wrong"),
+        (["discount", "outdated", "incorrect info",
+          "didn't ident", "wrong info", "wrong answer"],       "AI using wrong or outdated information"),
+        (["confirm", "didn't execute", "failed to update",
+          "didn't complete"],                                  "AI confirming actions not completed"),
         (["duplicat", "after transfer", "timing"],             "AI message timing & duplication"),
         (["react", "reopen", "conversation state"],            "Incorrect conversation state changes"),
     ],
+    "Platform & UI": [
+        (["flow", "flows"],                                    "Flows stopping mid-execution"),
+        (["inbox", "loading", "slow", "performance"],          "Inbox & performance issues"),
+        (["handover", "transfer", "access", "notification"],   "Handover & access failures"),
+        (["onboarding", "stuck", "setup"],                     "Onboarding & setup issues"),
+    ],
+    "WhatsApp Marketing": [
+        (["broadcast", "didn't send", "not send",
+          "failed to send", "shows finished"],                 "Broadcast send failures"),
+        (["segment", "contact list", "audience"],              "Segment & audience issues"),
+        (["utm", "tracking", "link"],                          "UTM & link tracking issues"),
+        (["schedule", "scheduled", "campaign send"],           "Campaign scheduling issues"),
+    ],
     "Integration": [
         (["outlook", "microsoft", "email integr"],             "Email/Outlook connection issues"),
-        (["livechat", "live chat"],                            "Livechat channel issues"),
-        (["instagram", "social", "whatsapp", "telegram"],      "Social channel issues"),
-        (["campaign", "flow fail"],                            "Campaign/flow execution issues"),
+        (["gorgias", "livechat", "live chat"],                 "Helpdesk channel issues"),
+        (["shopify", "sync", "product sync"],                  "Shopify/product sync issues"),
+        (["instagram", "social", "telegram"],                  "Social channel issues"),
     ],
 }
 _CAT_COLORS = {
-    "Feature request":   "#4F8EF7",
-    "AI Behavior":       "#F87171",
-    "Integration":       "#A78BFA",
-    "Platform & UI":     "#34D399",
-    "Billing & Account": "#FBBF24",
+    "AI Behavior":        "#F87171",   # red
+    "Platform & UI":      "#34D399",   # green
+    "WhatsApp Marketing": "#25D366",   # WhatsApp green
+    "Integration":        "#A78BFA",   # purple
 }
 
 
@@ -509,7 +647,7 @@ def _review_period_label(issues_by_period):
     """Most recent period with ≥5 in-scope issues (the period being reviewed in the meeting).
 
     On day 1 of a new period the new period has 0 issues, so this walks back to the
-    just-completed period — which is exactly what the biweekly meeting is reviewing.
+    just-completed period — which is exactly what the weekly meeting is reviewing.
     """
     labels  = [p["label"] for p in PERIOD_RANGES]
     cur_idx = labels.index(CURRENT_PERIOD) if CURRENT_PERIOD in labels else 0
@@ -546,6 +684,74 @@ def build_slide2_takeaways(issues_by_period):
         })
     return blocks
 
+def build_slide2_commentary(issues_by_period):
+    """Use Claude to generate a short commentary on the review period's issues."""
+    review_period = _review_period_label(issues_by_period)
+    cur_issues = [i for i in issues_by_period.get(review_period, []) if i["is_in_scope"]]
+    by_cat = defaultdict(list)
+    for i in cur_issues:
+        bucket = CATEGORY_DISPLAY.get(i["category"], "Uncategorized")
+        by_cat[bucket].append(i)
+
+    # Build a summary of titles per category for Claude
+    cat_summaries = []
+    for cat in CATEGORY_BUCKETS:
+        issues = by_cat.get(cat, [])
+        if not issues:
+            continue
+        bugs = [i for i in issues if i["is_bug"]]
+        features = [i for i in issues if i["is_feature"]]
+        titles = [i["title"] for i in issues]
+        cat_summaries.append(f"{cat} ({len(issues)} issues, {len(bugs)} bugs, {len(features)} feature requests):\n" +
+                            "\n".join(f"  - {t}" for t in titles))
+
+    prompt = f"""\
+You are writing a short commentary for a weekly CS meeting slide about issues reported in {review_period}.
+
+Here are the issues grouped by category:
+
+{chr(10).join(cat_summaries)}
+
+Write a JSON object with one key per category (use the exact category names above).
+Each value should be an array of 2-3 short bullet strings (one line each, no bullet character).
+
+Format each bullet as: "**Topic** — sub-issue 1 (N reports), sub-issue 2 (N reports)"
+Start each bullet with a bolded topic wrapped in double asterisks (**like this**).
+Group related failures under one topic. Include report counts where possible.
+
+Example: ["**Flows** — stop mid-execution (5 reports), don't trigger on keywords (3 reports)", "**Order data** — AI can't find orders (4 reports), sends wrong prices (2 reports)"]
+
+Focus on what's broken. Plain language, no jargon. Be specific with counts.
+
+Return ONLY the JSON object, no other text."""
+
+    try:
+        r = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key":         ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
+                "content-type":      "application/json",
+            },
+            json={
+                "model":      "claude-haiku-4-5-20251001",
+                "max_tokens": 1024,
+                "messages":   [{"role": "user", "content": prompt}],
+            },
+            timeout=30,
+        )
+        r.raise_for_status()
+        text = r.json()["content"][0]["text"].strip()
+        # Strip markdown code fences if present
+        if text.startswith("```"):
+            text = re.sub(r"^```(?:json)?\s*", "", text)
+            text = re.sub(r"\s*```$", "", text)
+        return json.loads(text)
+    except Exception as e:
+        print(f"   ⚠️ Commentary generation failed: {e}")
+        return {}
+
+
 def build_slide2(issues_by_period):
     bug_types = []
 
@@ -557,9 +763,24 @@ def build_slide2(issues_by_period):
             counts[bucket] += 1
         bug_types.append([counts.get(b, 0) for b in CATEGORY_BUCKETS])
 
+    # Per-category bug/feature split for the current (review) period
+    review_period = _review_period_label(issues_by_period)
+    cur_issues = [i for i in issues_by_period.get(review_period, []) if i["is_in_scope"]]
+    cat_split = []
+    for cat in CATEGORY_BUCKETS:
+        cat_issues = [i for i in cur_issues
+                      if CATEGORY_DISPLAY.get(i["category"], "Uncategorized") == cat]
+        cat_split.append({
+            "category": cat,
+            "total":    len(cat_issues),
+            "bugs":     sum(1 for i in cat_issues if i["is_bug"]),
+            "features": sum(1 for i in cat_issues if i["is_feature"]),
+        })
+
     return {
         "bug_types":      bug_types,
         "bug_type_names": CATEGORY_BUCKETS,
+        "category_split": cat_split,
     }
 
 
@@ -584,6 +805,62 @@ def save_snapshots(snapshots: dict):
         json.dump(snapshots, f, indent=2)
 
 
+# ── Linear priority helper ────────────────────────────────────────────────────
+
+LINEAR_GQL = "https://api.linear.app/graphql"
+PRIORITY_NAMES = {1: "Urgent", 2: "High", 3: "Medium", 4: "Low", 0: "None"}
+
+
+def _extract_linear_identifier(url: str) -> str:
+    """Extract e.g. 'ENG-124' from a Linear issue URL."""
+    m = re.search(r"/issue/([A-Z]+-\d+)", url)
+    return m.group(1) if m else ""
+
+
+def fetch_linear_priorities(urls: list[str]) -> dict[str, str]:
+    """
+    Given a list of Linear URLs, batch-query for priority.
+    Returns { url: "Urgent" | "High" | "Medium" | "Low" | "None" }
+    """
+    if not LINEAR_TOKEN or not urls:
+        return {}
+
+    headers = {"Authorization": LINEAR_TOKEN, "Content-Type": "application/json"}
+    url_to_ident = {}
+    by_team: dict[str, list[int]] = {}
+    for u in urls:
+        ident = _extract_linear_identifier(u)
+        if not ident:
+            continue
+        url_to_ident[u] = ident
+        m = re.match(r"^([A-Z]+)-(\d+)$", ident)
+        if m:
+            by_team.setdefault(m.group(1), []).append(int(m.group(2)))
+
+    query = """
+    query($teamKey: String!, $numbers: [Float!]!) {
+      issues(filter: {
+        team: { key: { eq: $teamKey } },
+        number: { in: $numbers }
+      }) {
+        nodes { identifier priority }
+      }
+    }
+    """
+
+    ident_to_priority = {}
+    for team_key, numbers in by_team.items():
+        resp = requests.post(LINEAR_GQL, headers=headers,
+                             json={"query": query, "variables": {"teamKey": team_key, "numbers": numbers}})
+        if resp.status_code != 200:
+            print(f"  [WARN] Linear priority query failed for {team_key}: {resp.status_code}")
+            continue
+        for node in resp.json().get("data", {}).get("issues", {}).get("nodes", []):
+            ident_to_priority[node["identifier"]] = PRIORITY_NAMES.get(node.get("priority", 0), "None")
+
+    return {u: ident_to_priority.get(ident, "None") for u, ident in url_to_ident.items()}
+
+
 # ── SLIDE 3: RESOLUTION STATUS ────────────────────────────────────────────────
 
 def build_slide3(issues_by_period, snapshots):
@@ -593,19 +870,24 @@ def build_slide3(issues_by_period, snapshots):
     """
     resolution_by_period = []
     resolution_rates     = []
+    open_bugs_by_period  = []   # collect open bugs per period for priority lookup
 
     for p in PERIOD_RANGES:
-        issues  = [i for i in issues_by_period[p["label"]] if i["is_in_scope"]]
+        issues  = [i for i in issues_by_period[p["label"]] if i["is_in_scope"] and i["is_bug"]]
         total_n = len(issues)
 
         open_n        = sum(1 for i in issues if i["status"] == "Open")
         in_progress_n = sum(1 for i in issues if i["status"] == "In Progress")
         resolved_n    = sum(1 for i in issues if i["status"] == "Resolved")
+        deprio_n      = sum(1 for i in issues if i["status"] == "Deprioritized")
+
+        open_bugs_by_period.append([i for i in issues if i["status"] == "Open"])
 
         resolution_by_period.append({
-            "Open":        open_n,
-            "In Progress": in_progress_n,
-            "Resolved":    resolved_n,
+            "Open":           open_n,
+            "In Progress":    in_progress_n,
+            "Resolved":       resolved_n,
+            "Deprioritized":  deprio_n,
         })
 
         # Resolution rate snapshots: frozen once measurement window closes
@@ -645,186 +927,160 @@ def build_slide3(issues_by_period, snapshots):
 
         resolution_rates.append(rates)
 
+    # Fetch Linear priorities for all open bugs across all periods
+    all_open_urls = []
+    for bugs in open_bugs_by_period:
+        all_open_urls.extend(i["linear_url"] for i in bugs if i.get("linear_url"))
+    print(f"   Fetching Linear priorities for {len(all_open_urls)} open bugs…")
+    url_to_priority = fetch_linear_priorities(list(set(all_open_urls)))
+
+    open_by_priority = []
+    for bugs in open_bugs_by_period:
+        counts = {"Urgent": 0, "High": 0, "Medium": 0, "Low": 0}
+        for b in bugs:
+            prio = url_to_priority.get(b.get("linear_url", ""), "None")
+            if prio in counts:
+                counts[prio] += 1
+        open_by_priority.append(counts)
+
     return {
         "resolution_by_period": resolution_by_period,
         "resolution_rates":     resolution_rates,
+        "open_by_priority":     open_by_priority,
     }
 
 
-# ── SLIDE 4: COMMUNICATION LOOP ───────────────────────────────────────────────
+# ── SLIDE 5: CHURNS (Stripe-sourced weekly trend) ────────────────────────────
 
-def build_slide4(issues_by_period, all_issues, customer_lookup):
-    comm_rate_trend = []
+def _fetch_stripe_canceled_at(stripe_customer_id):
+    """Fetch the canceled_at timestamp from Stripe for a given customer.
 
-    for p in PERIOD_RANGES:
-        resolved       = [i for i in issues_by_period[p["label"]]
-                          if i["status"] == "Resolved" and i["is_in_scope"]]
-        resolved_count = len(resolved)
-        informed_count = sum(1 for i in resolved if i["informed"])
-        rate = round(informed_count / resolved_count * 100) if resolved_count > 0 else 0
-        comm_rate_trend.append({
-            "period":   p["label"],
-            "resolved": resolved_count,
-            "informed": informed_count,
-            "rate":     rate,
-        })
+    Returns the most recent canceled_at as an ISO date string, or None.
+    """
+    if not STRIPE_KEY or not stripe_customer_id:
+        return None
+    try:
+        r = requests.get(
+            "https://api.stripe.com/v1/subscriptions",
+            params={"customer": stripe_customer_id, "status": "all", "limit": 10},
+            auth=(STRIPE_KEY, ""),
+            timeout=15,
+        )
+        r.raise_for_status()
+        subs = r.json().get("data", [])
+        best = None
+        for sub in subs:
+            cat = sub.get("canceled_at")
+            if cat:
+                d = datetime.utcfromtimestamp(cat).strftime("%Y-%m-%d")
+                if best is None or d > best:
+                    best = d
+        return best
+    except Exception as e:
+        print(f"   ⚠️  Stripe lookup failed for {stripe_customer_id}: {e}")
+        return None
 
-    # Flagged customers: those with open issues that need attention
-    open_issues     = [i for i in all_issues
-                       if i["status"] == "Open" and i["is_in_scope"]]
-    customer_open   = defaultdict(list)
-    for issue in open_issues:
-        for cid in issue["customer_ids"]:
-            customer_open[cid].append(issue)
-
-    flagged = []
-    for cid, c_issues in customer_open.items():
-        open_count   = len(c_issues)
-        dates        = [i["created_at"] for i in c_issues if i["created_at"]]
-        oldest_date  = min(dates) if dates else None
-        days_waiting = (TODAY - date.fromisoformat(oldest_date)).days if oldest_date else 0
-
-        if open_count > 3 or days_waiting > 10:
-            cname = customer_lookup.get(cid, {}).get("name") or "Unknown"
-            if open_count > 3 and days_waiting > 10:
-                flag = "Both"
-            elif days_waiting > 10:
-                flag = "Wait time"
-            else:
-                flag = "Open issues"
-            flagged.append({
-                "Customer":     cname,
-                "Days waiting": days_waiting,
-                "Open issues":  open_count,
-                "Flag":         flag,
-            })
-
-    flagged.sort(key=lambda x: (-x["Days waiting"], -x["Open issues"]))
-
-    return {
-        "comm_rate_trend":   comm_rate_trend,
-        "flagged_customers": flagged,
-    }
-
-
-# ── SLIDE 5: CHURNS ───────────────────────────────────────────────────────────
 
 def build_slide5(mct_pages):
-    """Pull churn data from MCT with strict period filtering.
+    """Pull churn data from MCT + Stripe with weekly trend bucketing.
 
-    - canceled_per_period: accounts whose subscription actually ended in each period
-      (Billing Status = Canceled, Churn Date falls in that period's window)
-    - churning_pipeline: all currently-churning customers sorted by cancel date
-      (Billing Status = Churning, any cancel date — forward-looking pipeline)
-    - canceled_this_period: convenience slice of canceled_per_period for CURRENT_PERIOD
+    For each Churning/Canceled customer, fetches the exact cancel-click date
+    from Stripe (canceled_at on the subscription), then buckets into W1/W2/W3.
     """
-    # Build canceled_per_period — strict Churn Date filter, no clipping
-    canceled_per_period = []
-    for p in PERIOD_RANGES:
-        customers = []
-        for page in mct_pages:
-            if get_select(page, "💰 Billing Status") != "Canceled":
-                continue
-            churn_date = get_date(page, "😢 Churn Date")
-            if not date_in_period(churn_date, p):
-                continue
-            name   = get_title(page, "🏢 Company Name") or "Unknown"
-            mrr    = get_number(page, "💰 MRR") or 0
-            reason = get_select(page, "🔁 Churn Reason") or "Unknown"
-            customers.append({"name": name, "mrr_raw": mrr, "reason": reason})
-        customers.sort(key=lambda x: -x["mrr_raw"])
-        canceled_per_period.append({
-            "period":    p["label"],
-            "label":     p["display"],
-            "end":       p["end"],
-            "count":     len(customers),
-            "mrr":       sum(c["mrr_raw"] for c in customers),
-            "customers": customers,
-        })
-
-    # Build churning_pipeline — all Churning customers, sorted by cancel date
-    churning_pipeline = []
-    for page in mct_pages:
-        if get_select(page, "💰 Billing Status") != "Churning":
-            continue
-        name                  = get_title(page, "🏢 Company Name") or "Unknown"
-        mrr                   = get_number(page, "💰 MRR") or 0
-        cancel_date           = get_date(page, "📅 Cancel Date") or ""
-        reason                = get_select(page, "🔁 Churn Reason") or "Unknown"
-        churning_since        = get_date(page, "📅 Churning Since") or ""
-        days_since_contact    = get_formula_number(page, "📞 Days Since Last Contact")
-        cs_sentiment          = get_select(page, "🧠 CS Sentiment") or ""
-        ai_resolution_rate    = get_number(page, "🤖 AI Resolution Rate")
-        open_issues           = get_rollup_number(page, "⚠️ # of Open Issues")
-        cs_owner              = get_select(page, "⭐ CS Owner") or ""
-        churning_pipeline.append({
-            "name":               name,
-            "mrr_raw":            mrr,
-            "cancel_date":        cancel_date,
-            "days_since_contact": days_since_contact,
-            "cs_sentiment":       cs_sentiment,
-            "ai_resolution_rate": ai_resolution_rate,
-            "open_issues":        int(open_issues) if open_issues is not None else None,
-            "cs_owner":           cs_owner,
-            "churning_since":     churning_since,
-            "reason":             reason,
-        })
-    churning_pipeline.sort(key=lambda x: x["cancel_date"])
-
-    cur = next((p for p in canceled_per_period if p["period"] == CURRENT_PERIOD), None)
-    canceled_this_period = cur["customers"] if cur else []
-
-    return {
-        "canceled_per_period":  canceled_per_period,
-        "churning_pipeline":    churning_pipeline,
-        "canceled_this_period": canceled_this_period,
-    }
-
-
-# ── SLIDE 6: TOP CUSTOMERS ────────────────────────────────────────────────────
-
-def build_slide6(issues_by_period, customer_lookup, review_period=None):
-    """Top 10 customers by total issue volume in the review period."""
-    rp     = review_period or CURRENT_PERIOD
-    issues = issues_by_period[rp]
-
-    customer_bugs     = defaultdict(int)
-    customer_features = defaultdict(int)
-    customer_names    = {}
-
-    total_in_scope = sum(1 for i in issues if i["is_in_scope"])
-
-    for issue in issues:
-        if not issue["is_in_scope"]:
-            continue
-        for cid in issue["customer_ids"]:
-            if cid not in customer_names:
-                customer_names[cid] = customer_lookup.get(cid, {}).get("name") or "Unknown"
-            if issue["is_bug"]:
-                customer_bugs[cid] += 1
-            elif issue["is_feature"]:
-                customer_features[cid] += 1
-
-    all_cids = set(customer_bugs) | set(customer_features)
-    rows = [
-        {
-            "customer": customer_names.get(cid, "Unknown"),
-            "issues":   customer_bugs.get(cid, 0) + customer_features.get(cid, 0),
-            "bugs":     customer_bugs.get(cid, 0),
-            "features": customer_features.get(cid, 0),
+    def _extract_customer_detail(page):
+        return {
+            "name":               get_title(page, "🏢 Company Name") or "Unknown",
+            "mrr_raw":            get_number(page, "💰 MRR") or 0,
+            "cancel_date":        get_date(page, "📅 Cancel Date") or "",
+            "churning_since":     get_date(page, "📅 Churning Since") or "",
+            "churn_date":         get_date(page, "😢 Churn Date") or "",
+            "reason":             get_select(page, "🔁 Churn Reason") or "Unknown",
+            "days_since_contact": get_formula_number(page, "📞 Days Since Last Contact"),
+            "cs_sentiment":       get_select(page, "🧠 CS Sentiment") or "",
+            "ai_resolution_rate": get_number(page, "🤖 AI Resolution Rate"),
+            "open_issues":        int(v) if (v := get_rollup_number(page, "⚠️ # of Open Issues")) is not None else None,
+            "cs_owner":           get_select(page, "⭐ CS Owner") or "",
         }
-        for cid in all_cids
-    ]
-    rows.sort(key=lambda x: -x["issues"])
 
-    customers_count = len(set(
-        cid for i in issues if i["is_in_scope"] for cid in i["customer_ids"]
-    ))
+    # ── Collect all Churning + Canceled customers from MCT ──
+    churn_pages = [p for p in mct_pages
+                   if get_select(p, "💰 Billing Status") in ("Churning", "Canceled")]
+    print(f"   {len(churn_pages)} churning/canceled customers found in MCT")
+
+    # ── Fetch exact cancel-click date from Stripe for each ──
+    churn_entries = []
+    if STRIPE_KEY:
+        print("   Fetching cancel dates from Stripe…")
+        for page in churn_pages:
+            stripe_id = get_rich_text(page, "🔗 Stripe Customer ID").strip()
+            stripe_canceled_at = _fetch_stripe_canceled_at(stripe_id)
+
+            row = _extract_customer_detail(page)
+            row["billing_status"] = get_select(page, "💰 Billing Status")
+            row["type"] = "canceled" if row["billing_status"] == "Canceled" else "churning"
+            row["stripe_canceled_at"] = stripe_canceled_at or ""
+            # Stripe canceled_at is the canonical cancel-click date;
+            # fall back to MCT "Churning Since" if Stripe unavailable
+            row["cancel_click_date"] = stripe_canceled_at or row["churning_since"]
+            churn_entries.append(row)
+            time.sleep(0.1)  # gentle rate limit
+        stripe_hits = sum(1 for e in churn_entries if e["stripe_canceled_at"])
+        print(f"   → {stripe_hits} had Stripe canceled_at dates")
+    else:
+        print("   ⚠️  STRIPE_KEY not set — using MCT 'Churning Since' as fallback")
+        for page in churn_pages:
+            row = _extract_customer_detail(page)
+            row["billing_status"] = get_select(page, "💰 Billing Status")
+            row["type"] = "canceled" if row["billing_status"] == "Canceled" else "churning"
+            row["stripe_canceled_at"] = ""
+            row["cancel_click_date"] = row["churning_since"]
+            churn_entries.append(row)
+
+    # ── Bucket into periods by cancel-click date ──
+    churn_volume = []
+    churn_canceled_count = []
+    churn_churning_count = []
+    churn_mrr = []
+    churn_details = []
+
+    for p in PERIOD_RANGES:
+        period_entries = [e for e in churn_entries
+                          if date_in_period(e["cancel_click_date"], p)]
+        period_entries.sort(key=lambda x: -x["mrr_raw"])
+
+        churn_volume.append(len(period_entries))
+        churn_canceled_count.append(sum(1 for e in period_entries if e["type"] == "canceled"))
+        churn_churning_count.append(sum(1 for e in period_entries if e["type"] == "churning"))
+        churn_mrr.append(sum(e["mrr_raw"] for e in period_entries))
+        churn_details.append(period_entries)
+
+    total_in_range = sum(churn_volume)
+    buckets_str = " / ".join(
+        f"{p['label']}={n}" for p, n in zip(PERIOD_RANGES, churn_volume)
+    )
+    print(f"   Churn bucketing: {buckets_str} (total {total_in_range})")
+
+    # ── churning_pipeline + churn_combined (for detail table) ──
+    churning_pipeline = sorted(
+        [e for e in churn_entries if e["type"] == "churning"],
+        key=lambda x: x["cancel_date"],
+    )
+
+    # Only include current period's churns in the detail table
+    current_period_entries = churn_details[-1] if churn_details else []
+    churn_combined = sorted(
+        current_period_entries,
+        key=lambda x: (-1 if x["type"] == "canceled" else 0, -x["mrr_raw"]),
+    )
 
     return {
-        "top_customers_by_issues": rows[:10],
-        "total_in_scope_issues":   total_in_scope,
-        "customers_count":         customers_count,
+        "churn_volume":          churn_volume,
+        "churn_canceled_count":  churn_canceled_count,
+        "churn_churning_count":  churn_churning_count,
+        "churn_mrr":             churn_mrr,
+        "churn_details":         churn_details,
+        "churning_pipeline":     churning_pipeline,
+        "churn_combined":        churn_combined,
     }
 
 
@@ -867,15 +1123,20 @@ def build_report_data(no_classify=False):
     review_period = _review_period_label(issues_by_period)
     print(f"   Review period: {review_period} (CURRENT_PERIOD={CURRENT_PERIOD})")
 
+    # Fetch GCal customer meetings for meeting-count bubbles on Slide 1
+    gcal_start = PERIOD_RANGES[0]["start"] + "T00:00:00Z"
+    gcal_end   = (date.fromisoformat(PERIOD_RANGES[-1]["end"]) + timedelta(days=1)).isoformat() + "T00:00:00Z"
+    gcal_meetings = fetch_gcal_meetings(gcal_start, gcal_end)
+    meetings_per_period = count_meetings_per_period(gcal_meetings)
+
     print("🔨 Building slides…")
     s1 = build_slide1(issues_by_period)
     s2 = build_slide2(issues_by_period)
     s3 = build_slide3(issues_by_period, snapshots)   # may mutate snapshots
     save_snapshots(snapshots)                         # persist any newly-computed snapshots
-    s4 = build_slide4(issues_by_period, all_issues, customer_lookup)
     s5 = build_slide5(mct_pages)
-    s6 = build_slide6(issues_by_period, customer_lookup, review_period=review_period)
     takeaways = build_slide2_takeaways(issues_by_period)
+    commentary = build_slide2_commentary(issues_by_period)
 
     return {
         "fetched_at":       datetime.utcnow().isoformat() + "Z",
@@ -883,8 +1144,10 @@ def build_report_data(no_classify=False):
         "period_ranges":    PERIOD_RANGES,
         "current_period":   CURRENT_PERIOD,
         "review_period":    review_period,
-        **s1, **s2, **s3, **s4, **s5, **s6,
+        **s1, **s2, **s3, **s5,
+        "meetings_per_period": meetings_per_period,
         "key_takeaways_s2": takeaways,
+        "slide2_commentary": commentary,
     }
 
 
