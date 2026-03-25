@@ -27,7 +27,8 @@ RELEASES_FILE = os.path.join(SCRIPT_DIR, "releases.json")
 sys.path.insert(0, SCRIPT_DIR)
 from fetch_checkin_data import (
     fetch_all_mct, fetch_all_issues, parse_customer_issues,
-    get_title, get_select,
+    get_title, get_select, get_rich_text, extract_channels,
+    fetch_all_clickhouse_metrics,
 )
 from generate_checkin import render_checkin_html
 
@@ -129,12 +130,17 @@ def main():
                 "page_id": page["id"],
                 "name": name,
                 "billing_status": billing,
+                "channels": extract_channels(page),
+                "stripe_id": get_rich_text(page, "🔗 Stripe Customer ID").strip(),
             })
 
     print(f"\n📋 {len(customers)} customers (Active + Churning)")
 
     # 3. Fetch all issues
     issue_pages = fetch_all_issues()
+
+    # 3b. Fetch ClickHouse metrics for all customers (one bulk query)
+    all_metrics = fetch_all_clickhouse_metrics()
 
     # 4. Load shared releases
     releases = {"updated": "", "items": []}
@@ -154,7 +160,10 @@ def main():
         slug = slug_map[cust["name"]]
         issues = parse_customer_issues(issue_pages, cust["page_id"])
 
-        html = render_checkin_html(cust["name"], issues, releases)
+        metrics = all_metrics.get(cust.get("stripe_id")) if cust.get("stripe_id") else None
+        html = render_checkin_html(cust["name"], issues, releases,
+                                   metrics=metrics,
+                                   channels=cust.get("channels"))
         out_path = os.path.join(SITE_DIR, f"{slug}.html")
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(html)

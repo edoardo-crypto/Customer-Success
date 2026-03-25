@@ -132,13 +132,78 @@ def _render_releases_list(releases_data):
 
 # ── MAIN RENDER FUNCTION (importable) ────────────────────────────────────────
 
-def render_checkin_html(customer_name, issues, releases_data):
+def render_checkin_html(customer_name, issues, releases_data,
+                        metrics=None, avg_response_time_seconds=None, channels=None):
     """Render a complete 4-slide check-in HTML for one customer. Returns HTML string."""
 
     issues_table = _render_issues_table(issues)
     releases_list = _render_releases_list(releases_data)
     issue_count = len(issues)
     releases_updated = releases_data.get("updated", "")
+
+    # ── Metric card values (from ClickHouse or fallback to placeholder) ──
+    if metrics and metrics.get("ai_resolution_rate"):
+        latest_rate = metrics["ai_resolution_rate"][-1]
+        ai_rate_display = f"{round(latest_rate * 100)}%" if latest_rate <= 1 else f"{round(latest_rate)}%"
+        tickets_total = metrics["sessions_total"][-1]
+        tickets_ai = metrics["sessions_ai"][-1]
+        tickets_human = metrics["sessions_human"][-1]
+        hours_val = metrics["hours_saved"][-1]
+        hours_display = f"{hours_val:.0f}h" if hours_val >= 1 else f"{round(hours_val * 60)}m"
+
+        # Compute % change vs previous week for AI resolution
+        if len(metrics["ai_resolution_rate"]) >= 2:
+            prev_rate = metrics["ai_resolution_rate"][-2]
+            if prev_rate and prev_rate > 0:
+                pct_change = ((latest_rate - prev_rate) / prev_rate) * 100
+                rate_sub = f"{pct_change:+.0f}% vs prev. week"
+            else:
+                rate_sub = ""
+        else:
+            rate_sub = ""
+
+        tickets_display = f"{tickets_total:,}"
+        tickets_sub = f"{tickets_ai} by AI · {tickets_human} by humans"
+        hours_sub = f"~{3} min avg per AI ticket"
+
+        # Weekly chart data
+        weeks_js = json.dumps(metrics["weeks"])
+        total_tickets_js = json.dumps(metrics["sessions_total"])
+        ai_resolved_js = json.dumps(metrics["sessions_ai"])
+        hours_saved_js = json.dumps(metrics["hours_saved"])
+    else:
+        # Fallback: editable placeholders
+        ai_rate_display = "—"
+        rate_sub = "No data available"
+        tickets_display = "—"
+        tickets_sub = ""
+        hours_display = "—"
+        hours_sub = ""
+        weeks_js = "['W1','W2','W3','W4','W5','W6','W7','W8']"
+        total_tickets_js = "[0,0,0,0,0,0,0,0]"
+        ai_resolved_js = "[0,0,0,0,0,0,0,0]"
+        hours_saved_js = "[0,0,0,0,0,0,0,0]"
+
+    # Response time card
+    if avg_response_time_seconds is not None:
+        if avg_response_time_seconds >= 3600:
+            rt_display = f"{avg_response_time_seconds / 3600:.1f}h"
+        elif avg_response_time_seconds >= 60:
+            rt_display = f"{round(avg_response_time_seconds / 60)}m"
+        else:
+            rt_display = f"{avg_response_time_seconds}s"
+        rt_sub = "Median first reply (30d)"
+    else:
+        rt_display = "—"
+        rt_sub = "No data available"
+
+    # Channel status
+    _default_ch = {"whatsapp": False, "livechat": False, "email": False, "instagram": False}
+    ch = channels or _default_ch
+    ch_whatsapp = "✅" if ch.get("whatsapp") else "❌"
+    ch_livechat = "✅" if ch.get("livechat") else "❌"
+    ch_email = "✅" if ch.get("email") else "❌"
+    ch_instagram = "✅" if ch.get("instagram") else "❌"
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -149,6 +214,7 @@ def render_checkin_html(customer_name, issues, releases_data):
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <style>
   *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
 
@@ -307,7 +373,7 @@ def render_checkin_html(customer_name, issues, releases_data):
 
   /* ── METRICS DASHBOARD ──────────────────────────────────────────── */
   .metrics-grid {{
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
   }}
   .metric-card {{
     background: var(--card); border-radius: 12px; box-shadow: var(--shadow);
@@ -402,7 +468,7 @@ def render_checkin_html(customer_name, issues, releases_data):
 <nav id="dot-nav">
   <div class="dot active" data-target="slide1" title="Success Metrics"></div>
   <div class="dot"        data-target="slide2" title="Past Issues"></div>
-  <div class="dot"        data-target="slide3" title="New Releases"></div>
+  <div class="dot"        data-target="slide3" title="Suggestions"></div>
   <div class="dot"        data-target="slide4" title="Next Steps"></div>
 </nav>
 
@@ -412,7 +478,7 @@ def render_checkin_html(customer_name, issues, releases_data):
 <section class="slide" id="slide1">
   <header class="slide-header">
     <span class="slide-num">01 / 04</span>
-    <h1 class="slide-title">{customer_name} — Success Metrics</h1>
+    <h1 class="slide-title">How Konvo Is Helping You — {customer_name}</h1>
     <span class="slide-subtitle">Last 30 days</span>
   </header>
 
@@ -420,31 +486,24 @@ def render_checkin_html(customer_name, issues, releases_data):
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">🤖</div>
-        <div class="metric-value" style="color:var(--blue);">78%</div>
+        <div class="metric-value" style="color:var(--blue);">{ai_rate_display}</div>
         <div class="metric-label">AI Resolution Rate</div>
-        <div class="metric-sub">+6% vs prev. month</div>
+        <div class="metric-sub">{rate_sub}</div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
-        <div class="metric-value" style="color:var(--green);">1,240</div>
+        <div class="metric-value" style="color:var(--green);">{tickets_display}</div>
         <div class="metric-label">Tickets Handled</div>
-        <div class="metric-sub">892 by AI · 348 by humans</div>
+        <div class="metric-sub">{tickets_sub}</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">⏱️</div>
-        <div class="metric-value" style="color:#A78BFA;">62h</div>
+        <div class="metric-value" style="color:#A78BFA;">{hours_display}</div>
         <div class="metric-label">Hours Saved</div>
-        <div class="metric-sub">~3 min avg per AI ticket</div>
+        <div class="metric-sub">{hours_sub}</div>
         <div class="metric-bar" style="background:#A78BFA;"></div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-icon">⚡</div>
-        <div class="metric-value" style="color:var(--yellow);">18s</div>
-        <div class="metric-label">Avg Response Time</div>
-        <div class="metric-sub">AI first reply</div>
-        <div class="metric-bar" style="background:var(--yellow);"></div>
       </div>
     </div>
 
@@ -469,22 +528,22 @@ def render_checkin_html(customer_name, issues, releases_data):
         <div class="channel-box">
           <div class="channel-icon whatsapp">💬</div>
           <div class="channel-name">WhatsApp</div>
-          <div class="channel-status">✅</div>
+          <div class="channel-status">{ch_whatsapp}</div>
         </div>
         <div class="channel-box">
           <div class="channel-icon livechat">🌐</div>
           <div class="channel-name">Live Chat</div>
-          <div class="channel-status">✅</div>
+          <div class="channel-status">{ch_livechat}</div>
         </div>
         <div class="channel-box">
           <div class="channel-icon email">📧</div>
           <div class="channel-name">Email</div>
-          <div class="channel-status">❌</div>
+          <div class="channel-status">{ch_email}</div>
         </div>
         <div class="channel-box">
           <div class="channel-icon instagram">📸</div>
           <div class="channel-name">Instagram</div>
-          <div class="channel-status">❌</div>
+          <div class="channel-status">{ch_instagram}</div>
         </div>
       </div>
     </div>
@@ -497,7 +556,7 @@ def render_checkin_html(customer_name, issues, releases_data):
 <section class="slide" id="slide2">
   <header class="slide-header">
     <span class="slide-num">02 / 04</span>
-    <h1 class="slide-title">Recent Issues — {customer_name}</h1>
+    <h1 class="slide-title">What We Have Been Working On — {customer_name}</h1>
     <span class="slide-subtitle">{issue_count} issues · Click row to expand notes</span>
   </header>
 
@@ -529,27 +588,19 @@ def render_checkin_html(customer_name, issues, releases_data):
 </section>
 
 <!-- ══════════════════════════════════════════════════════════════════════
-     SLIDE 3 — New Releases & Features
+     SLIDE 3 — Our Suggestions for Improvement
 ════════════════════════════════════════════════════════════════════════ -->
 <section class="slide" id="slide3">
   <header class="slide-header">
     <span class="slide-num">03 / 04</span>
-    <h1 class="slide-title">New Releases &amp; Features</h1>
-    <span class="slide-subtitle">Updated {releases_updated}</span>
+    <h1 class="slide-title">New Releases &amp; Suggestions — {customer_name}</h1>
   </header>
 
-  <div class="slide-body">
-    <div class="card" style="flex:1;">
-      <div class="card-title">Recent releases</div>
-      <ul class="releases-list">
-        {releases_list}
+  <div class="slide-body" style="gap:20px;">
+    <div class="card notes-section" style="flex:1;">
+      <ul class="next-steps-list" contenteditable="true" data-placeholder="Type suggestions…">
+        <li><br></li>
       </ul>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Additional notes</div>
-      <div class="releases-editable" contenteditable="true"
-           data-placeholder="Add custom release notes or talking points for this customer…"></div>
     </div>
   </div>
 </section>
@@ -578,11 +629,12 @@ def render_checkin_html(customer_name, issues, releases_data):
      JAVASCRIPT
 ════════════════════════════════════════════════════════════════════════ -->
 <script>
+Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ['W1','W2','W3','W4','W5','W6','W7','W8'];
-const TOTAL_TICKETS = [120, 135, 148, 160, 155, 170, 162, 180];
-const AI_RESOLVED   = [ 85,  98, 110, 122, 118, 132, 128, 142];
-const HOURS_SAVED   = [5.2, 6.0, 6.8, 7.5, 7.2, 8.1, 7.8, 8.7];
+const WEEKS = {weeks_js};
+const TOTAL_TICKETS = {total_tickets_js};
+const AI_RESOLVED   = {ai_resolved_js};
+const HOURS_SAVED   = {hours_saved_js};
 
 new Chart(document.getElementById('chart-tickets'), {{
   type: 'bar',
@@ -595,6 +647,7 @@ new Chart(document.getElementById('chart-tickets'), {{
         backgroundColor: 'rgba(79,142,247,0.75)',
         borderRadius: 4,
         stack: 'a',
+        datalabels: {{ display: false }},
       }},
       {{
         label: 'Human handled',
@@ -602,6 +655,14 @@ new Chart(document.getElementById('chart-tickets'), {{
         backgroundColor: 'rgba(203,213,225,0.6)',
         borderRadius: 4,
         stack: 'a',
+        datalabels: {{
+          display: true,
+          anchor: 'end',
+          align: 'end',
+          formatter: (val, ctx) => TOTAL_TICKETS[ctx.dataIndex],
+          font: {{ size: 12, weight: 600 }},
+          color: '#64748b',
+        }},
       }},
     ]
   }},
@@ -633,7 +694,7 @@ new Chart(document.getElementById('chart-hours'), {{
   }},
   options: {{
     responsive: true,
-    plugins: {{ legend: {{ display: false }} }},
+    plugins: {{ legend: {{ display: false }}, datalabels: {{ display: false }} }},
     scales: {{
       y: {{ beginAtZero: true, grid: {{ display: false }}, ticks: {{ font: {{ size: 12 }}, callback: v => v + 'h' }} }},
       x: {{ grid: {{ display: false }}, ticks: {{ font: {{ size: 12 }} }} }}
@@ -727,11 +788,19 @@ if __name__ == "__main__":
 
     customer_name = data["customer_name"]
     issues = data["issues"]
+    metrics = data.get("metrics")
+    avg_rt = data.get("avg_response_time_seconds")
+    channels = data.get("channels")
 
     print(f"📊 Rendering check-in for: {customer_name}")
     print(f"   {len(issues)} issues, {len(releases['items'])} releases")
+    if metrics:
+        print(f"   {len(metrics.get('weeks', []))} weeks of ClickHouse data")
 
-    html = render_checkin_html(customer_name, issues, releases)
+    html = render_checkin_html(customer_name, issues, releases,
+                               metrics=metrics,
+                               avg_response_time_seconds=avg_rt,
+                               channels=channels)
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         f.write(html)

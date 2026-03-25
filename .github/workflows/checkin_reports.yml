@@ -36,6 +36,9 @@ jobs:
       - name: Generate all check-in reports
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          CLICKHOUSE_HOST: ${{ secrets.CLICKHOUSE_HOST }}
+          CLICKHOUSE_USER: ${{ secrets.CLICKHOUSE_USER }}
+          CLICKHOUSE_PASSWORD: ${{ secrets.CLICKHOUSE_PASSWORD }}
         run: python3 meetings/checkin/generate_all_checkins.py
 
       # ── 4. Deploy to GitHub Pages (gh-pages branch) ────────────────────

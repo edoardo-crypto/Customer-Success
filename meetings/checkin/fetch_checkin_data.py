@@ -1,7 +1,9 @@
 """
 fetch_checkin_data.py
 
-Fetches customer-specific issues from Notion for a CS check-in meeting.
+Fetches customer-specific issues from Notion for a CS check-in meeting,
+plus product metrics from ClickHouse, response time from Intercom,
+and channel connection status from the MCT.
 
     python3 meetings/checkin/fetch_checkin_data.py "Company Name"
 
@@ -13,15 +15,32 @@ and parse_customer_issues() directly.
 
 import json
 import os
+import re
 import sys
+import time
+import statistics as stats_mod
 import requests
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+# Add parent dir so we can import creds.py
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+import creds
 
 MCT_DS_ID    = "3ceb1ad0-91f1-40db-945a-c51c58035898"
 ISSUES_DB_ID = "bd1ed48de20e426f8bebeb8e700d19d8"
 
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_FILE = os.path.join(SCRIPT_DIR, "checkin_data.json")
+
+# Hours-saved estimation: avg minutes saved per AI-resolved session
+MINUTES_PER_AI_SESSION = 3
+
+# Free email providers to exclude from domain matching
+GENERIC_DOMAINS = {
+    "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com",
+    "aol.com", "protonmail.com", "live.com", "msn.com", "me.com",
+    "googlemail.com", "ymail.com", "mail.com",
+}
 
 # Status sort priority: Open first, then In Progress, Resolved, Deprioritized
 STATUS_ORDER = {"Open": 0, "In Progress": 1, "Resolved": 2, "Deprioritized": 3}
@@ -221,6 +240,334 @@ def parse_customer_issues(issue_pages, customer_page_id):
     return issues
 
 
+# ── CLICKHOUSE METRICS ───────────────────────────────────────────────────────
+
+def _ch_creds():
+    """Get ClickHouse host / user / password from env vars (CI) or Credentials.md (local)."""
+    host = os.environ.get("CLICKHOUSE_HOST", "").strip()
+    user = os.environ.get("CLICKHOUSE_USER", "").strip()
+    password = os.environ.get("CLICKHOUSE_PASSWORD", "").strip()
+
+    if host and user and password:
+        if not host.endswith(":8443"):
+            host += ":8443"
+        return host, user, password
+
+    # Fallback: parse from Credentials.md
+    creds_path = os.path.join(SCRIPT_DIR, "..", "..", "Credentials.md")
+    if not os.path.exists(creds_path):
+        return "", "", ""
+    raw = open(creds_path).read()
+
+    # Host
+    m = re.search(r"\*\*Host:\*\*\s*`([^`]+)`", raw)
+    if m:
+        host = m.group(1).rstrip("/")
+        if not host.endswith(":8443"):
+            host += ":8443"
+    # Key ID (username)
+    m = re.search(r"Key ID \(username\).*?```\s*(\S+)\s*```", raw, re.DOTALL)
+    if m:
+        user = m.group(1)
+    # Key Secret (password)
+    m = re.search(r"Key Secret \(password\).*?```\s*(.+?)\s*```", raw, re.DOTALL)
+    if m:
+        password = m.group(1)
+
+    return host, user, password
+
+
+def fetch_clickhouse_metrics(stripe_customer_id):
+    """Fetch 8 weeks of product metrics from ClickHouse for one customer."""
+    if not stripe_customer_id:
+        print("   ⚠️  No Stripe Customer ID — skipping ClickHouse metrics")
+        return None
+
+    host, user, password = _ch_creds()
+    sql = f"""
+        SELECT
+            toMonday(toDate(created_at))                   AS week_start,
+            argMax(ai_resolution_rate, created_at)         AS ai_resolution_rate,
+            argMax(ai_sessions_total, created_at)          AS ai_sessions_total,
+            argMax(ai_sessions_resolved, created_at)       AS ai_sessions_resolved,
+            argMax(ai_sessions_unresolved, created_at)     AS ai_sessions_unresolved
+        FROM operator.public_workspace_report_snapshot
+        WHERE stripe_customer_id = '{stripe_customer_id}'
+          AND toDate(created_at) >= toMonday(today()) - 56
+        GROUP BY week_start
+        ORDER BY week_start
+        FORMAT JSON
+    """
+
+    print(f"📊 Fetching ClickHouse metrics for {stripe_customer_id}…")
+    try:
+        r = requests.get(
+            host, params={"query": sql},
+            auth=(user, password), timeout=30, verify=True,
+        )
+        r.raise_for_status()
+        rows = r.json().get("data", [])
+    except Exception as e:
+        print(f"   ⚠️  ClickHouse query failed: {e}")
+        return None
+
+    if not rows:
+        print("   ⚠️  No ClickHouse data found for this customer")
+        return None
+
+    weeks = []
+    ai_resolution = []
+    sessions_total = []
+    sessions_ai = []
+    sessions_human = []
+    hours_saved = []
+
+    for i, row in enumerate(rows):
+        ws = row.get("week_start", "")
+        try:
+            d = datetime.strptime(ws, "%Y-%m-%d")
+            label = f"W{i + 1}\n{d.strftime('%b %d').replace(' 0', ' ')}"
+        except ValueError:
+            label = f"W{i + 1}"
+        weeks.append(label)
+        rate = float(row.get("ai_resolution_rate") or 0)
+        total = float(row.get("ai_sessions_total") or 0)
+        resolved = float(row.get("ai_sessions_resolved") or 0)
+        unresolved = float(row.get("ai_sessions_unresolved") or 0)
+
+        ai_resolution.append(round(rate, 2))
+        sessions_total.append(int(total))
+        sessions_ai.append(int(resolved))
+        sessions_human.append(int(unresolved))
+        hours_saved.append(round(resolved * MINUTES_PER_AI_SESSION / 60, 1))
+
+    print(f"   → {len(rows)} weeks of data")
+    return {
+        "weeks": weeks,
+        "ai_resolution_rate": ai_resolution,
+        "sessions_total": sessions_total,
+        "sessions_ai": sessions_ai,
+        "sessions_human": sessions_human,
+        "hours_saved": hours_saved,
+    }
+
+
+def _rows_to_metrics(rows):
+    """Convert a list of ClickHouse rows (for one customer) into a metrics dict."""
+    weeks, ai_resolution, sessions_total = [], [], []
+    sessions_ai, sessions_human, hours_saved = [], [], []
+
+    for i, row in enumerate(rows):
+        ws = row.get("week_start", "")
+        try:
+            d = datetime.strptime(ws, "%Y-%m-%d")
+            label = f"W{i + 1}\n{d.strftime('%b %d').replace(' 0', ' ')}"
+        except ValueError:
+            label = f"W{i + 1}"
+        weeks.append(label)
+        rate = float(row.get("ai_resolution_rate") or 0)
+        total = float(row.get("ai_sessions_total") or 0)
+        resolved = float(row.get("ai_sessions_resolved") or 0)
+        unresolved = float(row.get("ai_sessions_unresolved") or 0)
+        ai_resolution.append(round(rate, 2))
+        sessions_total.append(int(total))
+        sessions_ai.append(int(resolved))
+        sessions_human.append(int(unresolved))
+        hours_saved.append(round(resolved * MINUTES_PER_AI_SESSION / 60, 1))
+
+    return {
+        "weeks": weeks,
+        "ai_resolution_rate": ai_resolution,
+        "sessions_total": sessions_total,
+        "sessions_ai": sessions_ai,
+        "sessions_human": sessions_human,
+        "hours_saved": hours_saved,
+    }
+
+
+def fetch_all_clickhouse_metrics():
+    """Fetch 8 weeks of metrics for ALL customers in one bulk query.
+    Returns {stripe_customer_id: metrics_dict}."""
+    host, user, password = _ch_creds()
+    if not host or not user:
+        print("   ⚠️  ClickHouse credentials not available — skipping metrics")
+        return {}
+
+    sql = """
+        SELECT
+            stripe_customer_id,
+            toMonday(toDate(created_at))                   AS week_start,
+            argMax(ai_resolution_rate, created_at)         AS ai_resolution_rate,
+            argMax(ai_sessions_total, created_at)          AS ai_sessions_total,
+            argMax(ai_sessions_resolved, created_at)       AS ai_sessions_resolved,
+            argMax(ai_sessions_unresolved, created_at)     AS ai_sessions_unresolved
+        FROM operator.public_workspace_report_snapshot
+        WHERE toDate(created_at) >= toMonday(today()) - 56
+          AND stripe_customer_id != ''
+        GROUP BY stripe_customer_id, week_start
+        ORDER BY stripe_customer_id, week_start
+        FORMAT JSON
+    """
+
+    print("📊 Fetching ClickHouse metrics for all customers (bulk)…")
+    try:
+        r = requests.get(
+            host, params={"query": sql},
+            auth=(user, password), timeout=60, verify=True,
+        )
+        r.raise_for_status()
+        rows = r.json().get("data", [])
+    except Exception as e:
+        print(f"   ⚠️  ClickHouse bulk query failed: {e}")
+        return {}
+
+    # Group rows by stripe_customer_id
+    by_customer = {}
+    for row in rows:
+        sid = row.get("stripe_customer_id", "")
+        if sid:
+            by_customer.setdefault(sid, []).append(row)
+
+    # Convert each customer's rows to a metrics dict
+    result = {}
+    for sid, cust_rows in by_customer.items():
+        result[sid] = _rows_to_metrics(cust_rows)
+
+    print(f"   → {len(rows)} rows for {len(result)} customers")
+    return result
+
+
+# ── INTERCOM RESPONSE TIME ──────────────────────────────────────────────────
+
+def _intercom_headers():
+    return {
+        "Authorization":    f"Bearer {creds.get('INTERCOM_TOKEN')}",
+        "Intercom-Version": "2.11",
+        "Accept":           "application/json",
+        "Content-Type":     "application/json",
+    }
+
+
+def fetch_intercom_response_time(customer_domain):
+    """Compute median first-reply time for conversations matching a customer domain."""
+    if not customer_domain:
+        print("   ⚠️  No domain — skipping Intercom response time")
+        return None
+
+    # Clean domain
+    domain = re.sub(r"^https?://", "", customer_domain).strip().lower()
+    domain = re.sub(r"^www\.", "", domain).rstrip("/")
+
+    if not domain or domain in GENERIC_DOMAINS:
+        print(f"   ⚠️  Domain '{domain}' is generic/empty — skipping")
+        return None
+
+    hdrs = _intercom_headers()
+    since = int((datetime.now(timezone.utc) - timedelta(days=30)).timestamp())
+
+    print(f"⏱️  Fetching Intercom conversations for domain '{domain}' (last 30d)…")
+
+    # Search closed conversations from last 30 days
+    query = {
+        "query": {
+            "operator": "AND",
+            "value": [
+                {"field": "open",                     "operator": "=",  "value": False},
+                {"field": "statistics.last_close_at", "operator": ">",  "value": since},
+            ],
+        },
+        "pagination": {"per_page": 150},
+    }
+
+    all_convs = []
+    cursor = None
+    page = 1
+    while True:
+        if cursor:
+            query["pagination"]["starting_after"] = cursor
+        elif "starting_after" in query["pagination"]:
+            del query["pagination"]["starting_after"]
+
+        try:
+            r = requests.post("https://api.intercom.io/conversations/search",
+                              headers=hdrs, json=query, timeout=30)
+            r.raise_for_status()
+        except Exception as e:
+            print(f"   ⚠️  Intercom search failed: {e}")
+            return None
+
+        data = r.json()
+        batch = data.get("conversations", [])
+        all_convs.extend(batch)
+
+        pages_info = data.get("pages", {})
+        next_info = pages_info.get("next", {})
+        cursor = next_info.get("starting_after") if isinstance(next_info, dict) else None
+
+        if not cursor or not batch:
+            break
+        page += 1
+
+    print(f"   → {len(all_convs)} closed conversations fetched")
+
+    # Match conversations to domain by extracting emails from contacts/source
+    reply_times = []
+    for conv in all_convs:
+        emails = set()
+        # source author email
+        author_email = conv.get("source", {}).get("author", {}).get("email", "")
+        if author_email:
+            emails.add(author_email.lower())
+        # contacts
+        for cref in conv.get("contacts", {}).get("contacts", []):
+            email = cref.get("email", "")
+            if email:
+                emails.add(email.lower())
+
+        # Check if any email matches the customer domain
+        matched = any(e.split("@")[-1] == domain for e in emails if "@" in e)
+        if not matched:
+            continue
+
+        # Extract reply time
+        s = conv.get("statistics") or {}
+        reply_at = s.get("last_assignment_admin_reply_at")
+        assign_at = s.get("last_assignment_at")
+        if reply_at and assign_at and reply_at > assign_at:
+            reply_times.append(reply_at - assign_at)
+
+    if not reply_times:
+        print(f"   ⚠️  No matched conversations with reply data for {domain}")
+        return None
+
+    median_sec = stats_mod.median(reply_times)
+    print(f"   → {len(reply_times)} conversations matched, median reply: {median_sec:.0f}s")
+    return round(median_sec)
+
+
+# ── CHANNEL STATUS FROM MCT ─────────────────────────────────────────────────
+
+CHANNEL_PROPS = {
+    "whatsapp":  "💬 Whatsapp ",
+    "livechat":  "🗨️ Live chat",
+    "email":     "✉️ Email ",
+    "instagram": "📸 Instagram",
+}
+
+
+def extract_channels(mct_page):
+    """Read channel multi_select properties from an MCT page. Returns dict of bools."""
+    props = mct_page.get("properties", {})
+    channels = {}
+    for key, prop_name in CHANNEL_PROPS.items():
+        prop = props.get(prop_name, {})
+        options = prop.get("multi_select", [])
+        connected = any("Connected" in opt.get("name", "") and "Not" not in opt.get("name", "")
+                        for opt in options)
+        channels[key] = connected
+    return channels
+
+
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -234,15 +581,31 @@ def main():
     customer_id = customer_page["id"]
     print(f"✅ Matched: {customer_name} ({customer_id})")
 
+    # Issues
     issue_pages = fetch_all_issues()
     issues = parse_customer_issues(issue_pages, customer_id)
     print(f"   → {len(issues)} issues for {customer_name}")
 
+    # ClickHouse product metrics
+    stripe_id = get_rich_text(customer_page, "🔗 Stripe Customer ID").strip()
+    metrics = fetch_clickhouse_metrics(stripe_id)
+
+    # Intercom response time
+    domain = get_rich_text(customer_page, "🏢 Domain").strip()
+    avg_response_time = fetch_intercom_response_time(domain)
+
+    # Channel status
+    channels = extract_channels(customer_page)
+    print(f"📡 Channels: {channels}")
+
     data = {
-        "customer_name": customer_name,
-        "customer_id":   customer_id,
-        "fetched_at":    datetime.utcnow().isoformat() + "Z",
-        "issues":        issues,
+        "customer_name":          customer_name,
+        "customer_id":            customer_id,
+        "fetched_at":             datetime.now(timezone.utc).isoformat(),
+        "issues":                 issues,
+        "metrics":                metrics,
+        "avg_response_time_seconds": avg_response_time,
+        "channels":               channels,
     }
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
