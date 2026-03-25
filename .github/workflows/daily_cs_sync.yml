@@ -16,7 +16,7 @@ name: Daily CS Sync
 
 on:
   schedule:
-    - cron: '0 9 * * *'   # 09:00 UTC = 10:00 CET (after n8n 09:30 CET sync)
+    - cron: '0 7 * * *'   # 07:00 UTC = 08:00 CET
   workflow_dispatch:         # Manual trigger
 
 jobs:
