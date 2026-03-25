@@ -35,6 +35,11 @@ env/
 *.xlsx
 *.csv
 *.docx
+contact_audit.json
+dm_research_results.json
+phone_gaps.json
+mct_domain_audit.json
+Receivables/
 
 # ── Check-in report site (generated, deployed to gh-pages) ───────────
 meetings/checkin/site/
