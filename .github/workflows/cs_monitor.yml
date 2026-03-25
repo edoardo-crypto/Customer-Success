@@ -8,6 +8,9 @@ on:
     - cron: '0 14 * * 5'    # Friday 14:00 UTC = 15:00 CET / 16:00 CEST
   workflow_dispatch:          # Manual trigger
 
+permissions:
+  contents: write
+
 jobs:
   monitor:
     runs-on: ubuntu-latest
