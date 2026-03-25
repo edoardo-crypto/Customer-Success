@@ -10,9 +10,10 @@ Fixes the "Filter: Not an Issue" node in workflow 3AO3SRUK80rcOCgQ:
 import requests
 import json
 import copy
+import creds
 
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = "***REMOVED***"
+N8N_API_KEY = creds.get("N8N_API_KEY")
 WORKFLOW_ID = "3AO3SRUK80rcOCgQ"
 FILTER_NODE_NAME = "Filter: Not an Issue"
 

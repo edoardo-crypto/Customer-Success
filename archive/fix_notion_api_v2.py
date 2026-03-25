@@ -14,9 +14,10 @@ import json
 import urllib.request
 import ssl
 import sys
+import creds
 
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = "***REMOVED***"
+N8N_API_KEY = creds.get("N8N_API_KEY")
 
 MASTER_DB_ID = "84feda19cfaf4c6e9500bf21d2aaafef"
 DATA_SOURCE_ID = "3ceb1ad0-91f1-40db-945a-c51c58035898"

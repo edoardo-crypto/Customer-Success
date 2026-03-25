@@ -22,13 +22,14 @@ from datetime import date
 from typing import Optional
 
 import requests
+import creds
 
 # ── Config ────────────────────────────────────────────────────────────────────
-NOTION_TOKEN = "***REMOVED***"
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
 NOTION_VERSION = "2022-06-28"
 ISSUES_DB_ID = "bd1ed48de20e426f8bebeb8e700d19d8"
 
-LINEAR_TOKEN = "***REMOVED***"
+LINEAR_TOKEN = creds.get("LINEAR_TOKEN")
 LINEAR_GQL = "https://api.linear.app/graphql"
 
 DRY_RUN = os.environ.get("DRY_RUN", "true").lower() not in ("false", "0", "no")

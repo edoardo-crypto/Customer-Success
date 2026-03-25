@@ -9,12 +9,13 @@ import urllib.request
 import urllib.error
 import ssl
 import sys
+import creds
 
 # -- Configuration -----------------------------------------------------------
 
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = "***REMOVED***"
-NOTION_API_KEY = "***REMOVED***"
+N8N_API_KEY = creds.get("N8N_API_KEY")
+NOTION_API_KEY = creds.get("NOTION_TOKEN")
 
 NOTION_DB_ID = "84feda19cfaf4c6e9500bf21d2aaafef"
 CLICKHOUSE_HOST = "https://ua2wi80os4.eu-central-1.aws.clickhouse.cloud:8443/"

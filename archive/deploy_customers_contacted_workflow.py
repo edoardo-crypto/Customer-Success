@@ -22,17 +22,14 @@ import json
 import uuid
 import requests
 import sys
+import creds
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = (
-    "***REMOVED_JWT***"
-    ".eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9"
-    ".X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+N8N_API_KEY = creds.get("N8N_API_KEY")
 
-NOTION_TOKEN   = "***REMOVED***"
-INTERCOM_TOKEN = "***REMOVED***"
+NOTION_TOKEN   = creds.get("NOTION_TOKEN")
+INTERCOM_TOKEN = creds.get("INTERCOM_TOKEN")
 
 # Scorecard DB — confirmed at deploy time by confirm_scorecard_db() below.
 # W09 page: 311e418f-d8c4-81b1-8552-d12c067c1089  (PAGE inside the DB)

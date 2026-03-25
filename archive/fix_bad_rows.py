@@ -13,8 +13,9 @@ Step 2: Set Issue Type = "Feature Improvement Request" on 4 real feature-request
 
 import requests
 import time
+import creds
 
-NOTION_TOKEN = "***REMOVED***"
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
 NOTION_VERSION = "2022-06-28"
 
 HEADERS = {

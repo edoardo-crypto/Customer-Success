@@ -14,14 +14,15 @@ import urllib.error
 import ssl
 import sys
 import time
+import creds
 
 # ── Configuration ────────────────────────────────────────────────────────────
 
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = "***REMOVED***"
-INTERCOM_TOKEN = "***REMOVED***"
-NOTION_API_KEY = "***REMOVED***"
-HUBSPOT_KEY = "***REMOVED***"
+N8N_API_KEY = creds.get("N8N_API_KEY")
+INTERCOM_TOKEN = creds.get("INTERCOM_TOKEN")
+NOTION_API_KEY = creds.get("NOTION_TOKEN")
+HUBSPOT_KEY = creds.get("HUBSPOT_TOKEN")
 
 # Workflow IDs
 WF_INTERCOM = "3AO3SRUK80rcOCgQ"
@@ -1336,7 +1337,7 @@ def fix_cs_reassign():
         for node in nodes:
             if node["name"] == "Reassign to Alex":
                 # Replace with safer code that handles missing data
-                node["parameters"]["jsCode"] = """const NOTION_TOKEN = '***REMOVED***';
+                node["parameters"]["jsCode"] = """const NOTION_TOKEN = creds.get("NOTION_TOKEN");
 
 // Parse Slack interactive payload safely
 const raw = $input.first().json;

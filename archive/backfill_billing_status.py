@@ -17,10 +17,11 @@ Usage:
 import sys
 import time
 import requests
+import creds
 
 # ── Credentials ───────────────────────────────────────────────────────────────
-STRIPE_KEY = "***REMOVED***"
-NOTION_TOKEN = "***REMOVED***"
+STRIPE_KEY = creds.get("STRIPE_KEY")
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
 NOTION_DS_ID = "3ceb1ad0-91f1-40db-945a-c51c58035898"
 
 # ── HTTP headers ──────────────────────────────────────────────────────────────

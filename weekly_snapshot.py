@@ -31,15 +31,14 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import requests
-from dotenv import load_dotenv
+import creds
 
 # ── Credentials ────────────────────────────────────────────────────────────────
 
-load_dotenv()
 
-NOTION_TOKEN       = os.environ.get("NOTION_TOKEN",   "***REMOVED***")
-INTERCOM_TOKEN     = "***REMOVED***"
-SLACK_BOT_TOKEN    = os.environ.get("SLACK_BOT_TOKEN", "***REMOVED***")
+NOTION_TOKEN       = creds.get("NOTION_TOKEN")
+INTERCOM_TOKEN     = creds.get("INTERCOM_TOKEN")
+SLACK_BOT_TOKEN    = creds.get("SLACK_BOT_TOKEN")
 GUILLEM_DM_CHANNEL = "U05T6VDTTFC"                          # Guillem Oliva's Slack user ID (bot DMs him directly)
 
 MCT_DS_ID    = "3ceb1ad0-91f1-40db-945a-c51c58035898"

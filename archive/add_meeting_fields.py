@@ -7,8 +7,9 @@ Patches Notion to add two missing fields needed for the biweekly DAGs & Churn me
 """
 
 import requests
+import creds
 
-NOTION_TOKEN = "***REMOVED***"
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
 HEADERS_MCT   = {"Authorization": f"Bearer {NOTION_TOKEN}", "Content-Type": "application/json", "Notion-Version": "2025-09-03"}
 HEADERS_ISSUES = {"Authorization": f"Bearer {NOTION_TOKEN}", "Content-Type": "application/json", "Notion-Version": "2022-06-28"}
 

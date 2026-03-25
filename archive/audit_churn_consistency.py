@@ -19,13 +19,14 @@ Usage:
 import sys
 import time
 import requests
+import creds
 
 # ── Credentials ───────────────────────────────────────────────────────────────
-STRIPE_KEY      = "***REMOVED***"
-NOTION_TOKEN    = "***REMOVED***"
+STRIPE_KEY      = creds.get("STRIPE_KEY")
+NOTION_TOKEN    = creds.get("NOTION_TOKEN")
 NOTION_DS_ID    = "3ceb1ad0-91f1-40db-945a-c51c58035898"
 N8N_BASE_URL    = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY     = "***REMOVED***"
+N8N_API_KEY     = creds.get("N8N_API_KEY")
 N8N_WORKFLOW_ID = "8cLtcqxjD8DC59JG"
 
 # ── HTTP headers ──────────────────────────────────────────────────────────────

@@ -12,8 +12,9 @@ All KPI columns: left empty (workflow/scorecard builder fills them)
 
 import requests
 import json
+import creds
 
-NOTION_TOKEN = "***REMOVED***"
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
 SCORECARD_DB_ID = "311e418f-d8c4-810e-8b11-cdc50357e709"
 W09_WEEK_START = "2026-02-23"
 W09_WEEK_NAME = "W09 2026"

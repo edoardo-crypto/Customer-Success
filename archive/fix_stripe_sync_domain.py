@@ -23,14 +23,11 @@ which already extracts `domain` from the Stripe customer email.
 import json
 import sys
 import requests
+import creds
 
 # ── Config ─────────────────────────────────────────────────────────────────────
 N8N_BASE    = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = (
-    "***REMOVED_JWT***."
-    "eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9."
-    "X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+N8N_API_KEY = creds.get("N8N_API_KEY")
 WORKFLOW_ID = "Ai9Y3FWjqMtEhr57"
 BACKUP_PATH = "/tmp/workflow_backup_stripe_domain_fix.json"
 

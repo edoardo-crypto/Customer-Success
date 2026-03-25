@@ -13,13 +13,14 @@ import statistics
 import time
 import requests
 from datetime import date, datetime, timezone
+import creds
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-NOTION_TOKEN     = "***REMOVED***"
+NOTION_TOKEN     = creds.get("NOTION_TOKEN")
 MCT_DS_ID        = "3ceb1ad0-91f1-40db-945a-c51c58035898"
 SCORECARD_PAGE   = "311e418f-d8c4-81b1-8552-d12c067c1089"   # W09 page
 
-INTERCOM_TOKEN   = "***REMOVED***"
+INTERCOM_TOKEN   = creds.get("INTERCOM_TOKEN")
 ALEX_ADMIN_ID    = "7484673"   # Alex de Godoy
 AYA_ADMIN_ID     = "8411967"   # Aya Guerimej
 

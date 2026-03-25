@@ -10,15 +10,11 @@ Renames '📞 Last Contact Date' → '📞 Last Contact Date 🔒' atomically:
 
 import json
 import requests
+import creds
 
 # ── Credentials ───────────────────────────────────────────────────────────────
-NOTION_TOKEN = "***REMOVED***"
-N8N_API_KEY  = (
-    "***REMOVED_JWT***"
-    ".eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4i"
-    "LCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9"
-    ".X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
+N8N_API_KEY  = creds.get("N8N_API_KEY")
 N8N_BASE    = "https://konvoai.app.n8n.cloud"
 NOTION_BASE = "https://api.notion.com/v1"
 

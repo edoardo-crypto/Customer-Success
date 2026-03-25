@@ -8,9 +8,10 @@ to GROUP BY (stripe_customer_id, week_start) only, using any() for org_id/worksp
 import json
 import urllib.request
 import urllib.error
+import creds
 
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-API_KEY  = "***REMOVED***"
+API_KEY  = creds.get("N8N_API_KEY")
 WORKFLOW_ID = "qeCE5b28xkLf8ZqQ"
 
 NEW_SQL = (

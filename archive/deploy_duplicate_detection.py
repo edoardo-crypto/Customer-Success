@@ -6,14 +6,15 @@ import urllib.request
 import urllib.error
 import ssl
 import sys
+import creds
 
 # ── Configuration ────────────────────────────────────────────────────────────
 
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = "***REMOVED***"
-NOTION_API_KEY = "***REMOVED***"
-LINEAR_API_KEY = "***REMOVED***"
-ANTHROPIC_API_KEY = "***REMOVED***"
+N8N_API_KEY = creds.get("N8N_API_KEY")
+NOTION_API_KEY = creds.get("NOTION_TOKEN")
+LINEAR_API_KEY = creds.get("LINEAR_TOKEN")
+ANTHROPIC_API_KEY = creds.get("ANTHROPIC_API_KEY")
 NOTION_ISSUES_DB = "bd1ed48de20e426f8bebeb8e700d19d8"
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

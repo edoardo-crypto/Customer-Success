@@ -27,20 +27,17 @@ import json
 import uuid
 import requests
 import sys
+import creds
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 N8N_BASE    = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = (
-    "***REMOVED_JWT***"
-    ".eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9"
-    ".X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+N8N_API_KEY = creds.get("N8N_API_KEY")
 
-INTERCOM_TOKEN   = "***REMOVED***"
+INTERCOM_TOKEN   = creds.get("INTERCOM_TOKEN")
 NOTION_CRED_ID   = "LH587kxanQCPcd9y"
 NOTION_CRED_NAME = "Notion - Enrichment"
 ISSUES_DB_ID     = "bd1ed48de20e426f8bebeb8e700d19d8"
-SLACK_WEBHOOK_URL = "***REMOVED***"
+SLACK_WEBHOOK_URL = creds.get("SLACK_WEBHOOK_CS")
 
 WORKFLOW_NAME = "Daily Status Alert"
 

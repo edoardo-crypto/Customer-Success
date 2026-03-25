@@ -9,9 +9,10 @@ import time
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone
+import creds
 
-INTERCOM_TOKEN = "***REMOVED***"
-NOTION_TOKEN   = "***REMOVED***"
+INTERCOM_TOKEN = creds.get("INTERCOM_TOKEN")
+NOTION_TOKEN   = creds.get("NOTION_TOKEN")
 ISSUES_DB_ID   = "bd1ed48de20e426f8bebeb8e700d19d8"
 
 TODAY_START_TS  = int(datetime(2026, 2, 20, 0, 0, 0, tzinfo=timezone.utc).timestamp())

@@ -18,10 +18,11 @@ import urllib.error
 import ssl
 import sys
 import time
+import creds
 
 # ── Config ──────────────────────────────────────────────────────────────────
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = "***REMOVED***"
+N8N_API_KEY = creds.get("N8N_API_KEY")
 WORKFLOW_ID = "3AO3SRUK80rcOCgQ"
 
 # Node IDs to modify

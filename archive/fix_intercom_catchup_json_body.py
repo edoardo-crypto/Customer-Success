@@ -19,14 +19,10 @@ so '}}' never appears inside the template source.
 
 import time
 import requests
+import creds
 
 N8N_BASE    = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = (
-    "***REMOVED_JWT***"
-    ".eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJp"
-    "c3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleH"
-    "AiOjE3NzMyNzAwMDB9.X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+N8N_API_KEY = creds.get("N8N_API_KEY")
 WORKFLOW_ID = "J1l8oI22H26f9iM5"
 NODE_NAME   = "Intercom: Search Recent Closed"
 

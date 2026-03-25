@@ -27,13 +27,14 @@ Run: python3 build_weekly_scorecard.py
 import statistics
 import requests
 from datetime import date, datetime, timezone
+import creds
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-NOTION_TOKEN   = "***REMOVED***"
+NOTION_TOKEN   = creds.get("NOTION_TOKEN")
 MCT_DS_ID      = "3ceb1ad0-91f1-40db-945a-c51c58035898"
 CS_OPS_HUB     = "302e418fd8c4818e9235ff950f55a31b"   # parent page for new DB
 
-INTERCOM_TOKEN = "***REMOVED***"
+INTERCOM_TOKEN = creds.get("INTERCOM_TOKEN")
 ALEX_ADMIN_ID  = "7484673"   # Alex de Godoy  — discovered Feb 24 2026
 AYA_ADMIN_ID   = "8411967"   # Aya Guerimej   — discovered Feb 24 2026
 

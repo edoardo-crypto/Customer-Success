@@ -12,10 +12,11 @@ No Notion writes.
 import time
 from collections import defaultdict
 import requests
+import creds
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-NOTION_TOKEN     = "***REMOVED***"
+NOTION_TOKEN     = creds.get("NOTION_TOKEN")
 NOTION_ISSUES_DB = "bd1ed48de20e426f8bebeb8e700d19d8"
 NOTION_DS_ID     = "3ceb1ad0-91f1-40db-945a-c51c58035898"  # MCT data source
 

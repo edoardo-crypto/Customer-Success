@@ -14,10 +14,11 @@ import time
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone
+import creds
 
 # ── Credentials ───────────────────────────────────────────────────────────────
-INTERCOM_TOKEN = "***REMOVED***"
-NOTION_TOKEN   = "***REMOVED***"
+INTERCOM_TOKEN = creds.get("INTERCOM_TOKEN")
+NOTION_TOKEN   = creds.get("NOTION_TOKEN")
 ISSUES_DB_ID   = "bd1ed48de20e426f8bebeb8e700d19d8"
 
 # Start of 2026-02-19 UTC as Unix timestamp

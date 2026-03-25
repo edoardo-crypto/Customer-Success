@@ -15,14 +15,11 @@ import ssl
 import uuid
 import urllib.request
 import urllib.error
+import creds
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 N8N_BASE    = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = (
-    "***REMOVED_JWT***"
-    ".eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9"
-    ".X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+N8N_API_KEY = creds.get("N8N_API_KEY")
 
 MCT_DS_ID        = "3ceb1ad0-91f1-40db-945a-c51c58035898"
 NOTION_CRED_ID   = "LH587kxanQCPcd9y"

@@ -20,14 +20,11 @@ import urllib.request
 import urllib.error
 import ssl
 import sys
+import creds
 
 # ── Config ────────────────────────────────────────────────────────────────────
 N8N_BASE     = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY  = (
-    "***REMOVED_JWT***."
-    "eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9."
-    "X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+N8N_API_KEY  = creds.get("N8N_API_KEY")
 WORKFLOW_ID   = "3AO3SRUK80rcOCgQ"
 NODE_FILTER   = "filter-not-issue-001"
 NODE_PARSE    = "f55665bc-4fbb-4419-af85-eb1c4191c0b8"

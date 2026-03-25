@@ -14,17 +14,14 @@ import urllib.request
 import urllib.error
 import ssl
 import sys
+import creds
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = (
-    "***REMOVED_JWT***"
-    ".eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9"
-    ".X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+N8N_API_KEY = creds.get("N8N_API_KEY")
 
 CLICKHOUSE_URL = "https://ua2wi80os4.eu-central-1.aws.clickhouse.cloud:8443/"
 CLICKHOUSE_CRED_ID   = "kionhtTQSKGgcIYt"

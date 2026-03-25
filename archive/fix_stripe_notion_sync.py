@@ -13,18 +13,14 @@ fix_stripe_notion_sync.py
 import json
 import requests
 import sys
+import creds
 
 # ── Config ──────────────────────────────────────────────────────────────────
-N8N_API_KEY = (
-    "***REMOVED_JWT***"
-    ".eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4i"
-    "LCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9"
-    ".X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+N8N_API_KEY = creds.get("N8N_API_KEY")
 N8N_BASE = "https://konvoai.app.n8n.cloud"
 WORKFLOW_ID = "Ai9Y3FWjqMtEhr57"
 
-NOTION_TOKEN = "***REMOVED***"
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
 NOTION_DB_ID = "84feda19cfaf4c6e9500bf21d2aaafef"
 
 n8n_headers = {

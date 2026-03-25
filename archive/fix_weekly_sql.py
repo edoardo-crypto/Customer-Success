@@ -6,9 +6,10 @@ Workflow: Jlmx2An3mRolraS3
 
 import json
 import requests
+import creds
 
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = "***REMOVED***"
+N8N_API_KEY = creds.get("N8N_API_KEY")
 WORKFLOW_ID = "Jlmx2An3mRolraS3"
 
 NEW_SQL = (

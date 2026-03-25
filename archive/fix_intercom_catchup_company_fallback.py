@@ -22,16 +22,12 @@ import uuid
 import time
 import requests
 import sys
+import creds
 
 # ── Config ───────────────────────────────────────────────────────────────────
 N8N_BASE    = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = (
-    "***REMOVED_JWT***"
-    ".eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJp"
-    "c3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleH"
-    "AiOjE3NzMyNzAwMDB9.X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
-NOTION_TOKEN = "***REMOVED***"
+N8N_API_KEY = creds.get("N8N_API_KEY")
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
 NOTION_DS_ID = "3ceb1ad0-91f1-40db-945a-c51c58035898"   # MCT data source
 
 WORKFLOW_ID = "J1l8oI22H26f9iM5"

@@ -42,17 +42,14 @@ import json
 import uuid
 import requests
 import sys
+import creds
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 N8N_BASE    = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = (
-    "***REMOVED_JWT***"
-    ".eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9"
-    ".X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+N8N_API_KEY = creds.get("N8N_API_KEY")
 
-NOTION_TOKEN   = "***REMOVED***"
-INTERCOM_TOKEN = "***REMOVED***"
+NOTION_TOKEN   = creds.get("NOTION_TOKEN")
+INTERCOM_TOKEN = creds.get("INTERCOM_TOKEN")
 
 # Confirmed Feb 25 2026 via confirm_scorecard_db()
 SCORECARD_DB_ID = "311e418f-d8c4-810e-8b11-cdc50357e709"

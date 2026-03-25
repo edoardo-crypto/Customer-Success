@@ -16,15 +16,16 @@ import time
 import sys
 import requests
 from datetime import datetime, timezone
+import creds
 
 # ── Credentials ──────────────────────────────────────────────────────────────
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_KEY = "***REMOVED***"
+N8N_KEY = creds.get("N8N_API_KEY")
 WORKFLOW_ID = "3AO3SRUK80rcOCgQ"
 
-INTERCOM_TOKEN = "***REMOVED***"
-NOTION_TOKEN = "***REMOVED***"
-ANTHROPIC_KEY = "***REMOVED***"
+INTERCOM_TOKEN = creds.get("INTERCOM_TOKEN")
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
+ANTHROPIC_KEY = creds.get("ANTHROPIC_API_KEY")
 
 NOTION_ISSUES_DB = "bd1ed48de20e426f8bebeb8e700d19d8"
 NOTION_DS_ID = "3ceb1ad0-91f1-40db-945a-c51c58035898"

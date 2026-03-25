@@ -12,18 +12,15 @@ Checks:
 import json
 import requests
 from datetime import datetime, timezone, timedelta
+import creds
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = (
-    "***REMOVED_JWT***"
-    ".eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9"
-    ".X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+N8N_API_KEY = creds.get("N8N_API_KEY")
 WORKFLOW_ID = "iDA5BBJxsp0cmv2M"
 IDEMPOTENCY_MARKER = "const sunday = new Date(monday);"
 
-NOTION_TOKEN = "***REMOVED***"
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
 SCORECARD_DB_ID = "311e418f-d8c4-810e-8b11-cdc50357e709"
 W09_WEEK_START = "2026-02-23"  # Monday of W09
 

@@ -23,18 +23,15 @@ Idempotent: safe to re-run (each step checks before acting).
 
 import json
 import requests
+import creds
 
 # ── Credentials ────────────────────────────────────────────────────────────────
 
 N8N_BASE    = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = (
-    "***REMOVED_JWT***"
-    ".eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9"
-    ".X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+N8N_API_KEY = creds.get("N8N_API_KEY")
 WORKFLOW_ID = "eUwMYFeglyv9bHxn"
 
-NOTION_TOKEN  = "***REMOVED***"
+NOTION_TOKEN  = creds.get("NOTION_TOKEN")
 
 # Wrong row created by buggy mid-week trigger (Week Start = 2026-02-25, Wednesday)
 WRONG_W09_PAGE_ID   = "312e418f-d8c4-81b2-b4ed-cbe258147c15"

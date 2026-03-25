@@ -24,11 +24,12 @@ import urllib.parse
 import urllib.request
 import json
 from typing import Optional
+import creds
 
 # ── Credentials ──────────────────────────────────────────────────────────────
-INTERCOM_TOKEN  = "***REMOVED***"
-HUBSPOT_TOKEN   = "***REMOVED***"
-NOTION_TOKEN    = "***REMOVED***"
+INTERCOM_TOKEN  = creds.get("INTERCOM_TOKEN")
+HUBSPOT_TOKEN   = creds.get("HUBSPOT_TOKEN")
+NOTION_TOKEN    = creds.get("NOTION_TOKEN")
 
 # Notion MCT data source
 MCT_DS_ID = "3ceb1ad0-91f1-40db-945a-c51c58035898"

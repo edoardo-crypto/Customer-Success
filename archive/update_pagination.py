@@ -5,10 +5,11 @@ import json
 import urllib.request
 import urllib.error
 import ssl
+import creds
 
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = "***REMOVED***"
-NOTION_API_KEY = "***REMOVED***"
+N8N_API_KEY = creds.get("N8N_API_KEY")
+NOTION_API_KEY = creds.get("NOTION_TOKEN")
 WORKFLOW_ID = "hNUbhJ1oQlUOAQ4T"
 NOTION_DB_ID = "84feda19cfaf4c6e9500bf21d2aaafef"
 NOTION_CRED_ID = "EEKGIOhGYmOQmoCb"

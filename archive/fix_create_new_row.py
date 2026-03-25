@@ -17,16 +17,13 @@ import re
 import time
 import requests
 from datetime import datetime
+import creds
 
 # ── Credentials ───────────────────────────────────────────────────────────────
 N8N_BASE    = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = (
-    "***REMOVED_JWT***."
-    "eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9."
-    "X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
-STRIPE_KEY    = "***REMOVED***"
-NOTION_TOKEN  = "***REMOVED***"
+N8N_API_KEY = creds.get("N8N_API_KEY")
+STRIPE_KEY    = creds.get("STRIPE_KEY")
+NOTION_TOKEN  = creds.get("NOTION_TOKEN")
 
 WORKFLOW_ID   = "Ai9Y3FWjqMtEhr57"
 NOTION_DS_ID  = "3ceb1ad0-91f1-40db-945a-c51c58035898"

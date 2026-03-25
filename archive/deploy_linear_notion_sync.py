@@ -9,14 +9,11 @@ import json
 import ssl
 import urllib.request
 import urllib.error
+import creds
 
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = (
-    "***REMOVED_JWT***"
-    ".eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9"
-    ".X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
-NOTION_TOKEN = "***REMOVED***"
+N8N_API_KEY = creds.get("N8N_API_KEY")
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
 NOTION_ISSUES_DB = "bd1ed48de20e426f8bebeb8e700d19d8"
 
 ctx = ssl.create_default_context()

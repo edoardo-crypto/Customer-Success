@@ -6,10 +6,11 @@ import urllib3
 import openpyxl
 import time
 from datetime import datetime
+import creds
 
 urllib3.disable_warnings()
 
-API_KEY = "***REMOVED***"
+API_KEY = creds.get("STRIPE_KEY")
 EXCEL_PATH = "/Users/edoardopelli/projects/Customer Success/New customers since november.xlsx"
 
 def get_stripe_customer(email):

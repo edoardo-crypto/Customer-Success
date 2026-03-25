@@ -8,9 +8,10 @@ Then reports last 10 executions.
 import json
 import requests
 import sys
+import creds
 
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-API_KEY = "***REMOVED***"
+API_KEY = creds.get("N8N_API_KEY")
 WORKFLOW_ID = "3AO3SRUK80rcOCgQ"
 BACKUP_PATH = "/tmp/workflow_backup_aten_revert.json"
 

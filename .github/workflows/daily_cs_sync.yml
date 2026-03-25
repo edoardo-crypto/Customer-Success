@@ -1,17 +1,22 @@
 name: Daily CS Sync
 
-# Runs every day at 09:00 CET (= 08:00 UTC winter / 07:00 CEST summer).
+# Runs every day at 10:00 CET (= 09:00 UTC), 30 min AFTER the n8n daily sync
+# (09:30 CET) so that sync_billing_status.py can correct any wrong statuses.
+#
 # Execution order matters:
-#   1. sync_last_contact.py  — GCal past → 📅 Last Meeting Date 🔒
-#                              GCal future → 📞 Next Scheduled Check-in
-#   2. sync_contact_reasons.py — Intercom + GCal combined → 📞 Last Contact Date 🔒 + 💎 Reason
+#   1. sync_linear_status.py     — Linear → Notion issue status reconciliation
+#   2. sync_billing_status.py    — Stripe → 💰 Billing Status + date fields
+#   3. sync_mrr_from_stripe.py   — Stripe charges → 💰 MRR (actual last month)
+#   4. sync_last_contact.py      — GCal past → 📅 Last Meeting Date 🔒
+#                                   GCal future → 📞 Next Scheduled Check-in
+#   5. sync_contact_reasons.py   — Intercom + GCal combined → 📞 Last Contact Date 🔒 + 💎 Reason
 # Each step depends on the previous, so they run sequentially in one job.
 #
 # Can be triggered manually from the GitHub Actions tab → "Run workflow".
 
 on:
   schedule:
-    - cron: '0 8 * * *'   # 08:00 UTC = 09:00 CET
+    - cron: '0 9 * * *'   # 09:00 UTC = 10:00 CET (after n8n 09:30 CET sync)
   workflow_dispatch:         # Manual trigger
 
 jobs:
@@ -40,22 +45,44 @@ jobs:
           LINEAR_TOKEN: ${{ secrets.LINEAR_TOKEN }}
         run: python3 sync_linear_status.py
 
-      # ── 4. Write Google OAuth token to file (needed by sync_last_contact.py)
+      # ── 4. sync_billing_status.py → Stripe → 💰 Billing Status + date fields
+      - name: Sync Stripe billing status
+        env:
+          STRIPE_KEY:   ${{ secrets.STRIPE_KEY }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        run: python3 sync_billing_status.py --create-missing
+
+      # ── 5. sync_mrr_from_stripe.py → 💰 MRR from actual charges
+      - name: Sync MRR from Stripe charges
+        env:
+          STRIPE_KEY:   ${{ secrets.STRIPE_KEY }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        run: python3 sync_mrr_from_stripe.py
+
+      # ── 6. Write Google OAuth token to file (needed by sync_last_contact.py)
       - name: Write GCal token files
         env:
           GCAL_TOKEN_JSON:      ${{ secrets.GCAL_TOKEN_JSON }}
           GCAL_CLIENT_SECRETS:  ${{ secrets.GCAL_CLIENT_SECRETS }}
         run: |
+          if [[ -z "$GCAL_TOKEN_JSON" ]]; then
+            echo "ERROR: GCAL_TOKEN_JSON secret is not set. Set it in repo Settings → Secrets."
+            exit 1
+          fi
+          if [[ -z "$GCAL_CLIENT_SECRETS" ]]; then
+            echo "ERROR: GCAL_CLIENT_SECRETS secret is not set."
+            exit 1
+          fi
           echo "$GCAL_TOKEN_JSON"     > token.json
           echo "$GCAL_CLIENT_SECRETS" > client_secrets.json
 
-      # ── 5. sync_last_contact.py → 📅 Last Meeting Date 🔒 ─────────────────
+      # ── 7. sync_last_contact.py → 📅 Last Meeting Date 🔒 ─────────────────
       - name: Run sync_last_contact.py
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
         run: python3 sync_last_contact.py
 
-      # ── 6. sync_contact_reasons.py → 📞 Last Contact Date 🔒 + 💎 Reason ──
+      # ── 8. sync_contact_reasons.py → 📞 Last Contact Date 🔒 + 💎 Reason ──
       - name: Run sync_contact_reasons.py
         env:
           NOTION_TOKEN:   ${{ secrets.NOTION_TOKEN }}

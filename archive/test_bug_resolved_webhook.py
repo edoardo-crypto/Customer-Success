@@ -6,9 +6,10 @@ for a Bug-type issue to verify the Is Bug? → Update MCT: Bug Fixed flow.
 import requests
 import json
 import time
+import creds
 
-NOTION_TOKEN = "***REMOVED***"
-N8N_API_KEY  = "***REMOVED***"
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
+N8N_API_KEY  = creds.get("N8N_API_KEY")
 N8N_BASE     = "https://konvoai.app.n8n.cloud"
 WEBHOOK_URL  = "https://konvoai.app.n8n.cloud/webhook/linear-issue-sync"
 WORKFLOW_ID  = "xdVkUh6YCtcuW8QM"

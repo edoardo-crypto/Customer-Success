@@ -20,10 +20,11 @@ import json
 import math
 import urllib.request
 from datetime import date
+import creds
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-NOTION_TOKEN          = "***REMOVED***"
+NOTION_TOKEN          = creds.get("NOTION_TOKEN")
 NOTION_DATA_SOURCE_ID = "3ceb1ad0-91f1-40db-945a-c51c58035898"
 
 FLAG_DATE   = date(2026, 2, 23)   # currently assigned to all overdue/no-contact

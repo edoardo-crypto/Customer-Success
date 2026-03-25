@@ -25,22 +25,15 @@ import json
 import uuid
 import requests
 import sys
+import creds
 
 # ── Config ───────────────────────────────────────────────────────────────────
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = (
-    "***REMOVED_JWT***"
-    ".eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJp"
-    "c3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleH"
-    "AiOjE3NzMyNzAwMDB9.X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+N8N_API_KEY = creds.get("N8N_API_KEY")
 
-INTERCOM_TOKEN = "***REMOVED***"
-NOTION_TOKEN = "***REMOVED***"
-ANTHROPIC_KEY = (
-    "***REMOVED***"
-    "CxzATZqnMZonZicxgwR2LlsWw-446IlgAA"
-)
+INTERCOM_TOKEN = creds.get("INTERCOM_TOKEN")
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
+ANTHROPIC_KEY = creds.get("ANTHROPIC_API_KEY")
 
 NOTION_ISSUES_DB = "bd1ed48de20e426f8bebeb8e700d19d8"
 NOTION_DS_ID = "3ceb1ad0-91f1-40db-945a-c51c58035898"  # MCT data source

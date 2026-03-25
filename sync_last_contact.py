@@ -30,6 +30,7 @@ import sys
 import re
 from datetime import datetime, timedelta, date, timezone
 from pathlib import Path
+import creds
 
 # ── Google Auth ──────────────────────────────────────────────────────────────
 try:
@@ -54,7 +55,7 @@ CLIENT_SECRETS_FILE = SCRIPT_DIR / "client_secrets.json"
 TOKEN_FILE = SCRIPT_DIR / "token.json"
 
 # Credentials.md values
-NOTION_TOKEN = "***REMOVED***"
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
 NOTION_DATA_SOURCE_ID = "3ceb1ad0-91f1-40db-945a-c51c58035898"
 NOTION_DB_ID = "84feda19cfaf4c6e9500bf21d2aaafef"
 
@@ -475,7 +476,12 @@ def main():
 
     # Step 1: Authenticate with Google
     print("\n[1/6] Authenticating with Google Calendar...")
-    creds = get_google_credentials()
+    try:
+        creds = get_google_credentials()
+    except Exception as e:
+        print(f"ERROR: Google Calendar authentication failed: {e}")
+        print("Make sure token.json and client_secrets.json are valid.")
+        sys.exit(1)
     service = build("calendar", "v3", credentials=creds)
     print("  Google auth OK")
 

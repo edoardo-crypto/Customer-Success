@@ -16,9 +16,10 @@ import json
 import urllib.request
 import ssl
 import sys
+import creds
 
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = "***REMOVED***"
+N8N_API_KEY = creds.get("N8N_API_KEY")
 WF_ID = "G4bxsv1nrzON6XXd"
 
 try:

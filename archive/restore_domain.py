@@ -20,16 +20,13 @@ Steps
 import json
 import time
 import requests
+import creds
 
 # ── Credentials ───────────────────────────────────────────────────────────────
-STRIPE_KEY    = "***REMOVED***"
-NOTION_TOKEN  = "***REMOVED***"
+STRIPE_KEY    = creds.get("STRIPE_KEY")
+NOTION_TOKEN  = creds.get("NOTION_TOKEN")
 N8N_BASE      = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY   = (
-    "***REMOVED_JWT***."
-    "eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9."
-    "X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+N8N_API_KEY   = creds.get("N8N_API_KEY")
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 NOTION_DB_ID    = "84feda19cfaf4c6e9500bf21d2aaafef"

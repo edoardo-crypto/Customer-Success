@@ -28,13 +28,10 @@ Prepare New Customer Payload: simplified to a passthrough.
 """
 
 import json, sys, uuid, requests
+import creds
 
 N8N_BASE    = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = (
-    "***REMOVED_JWT***."
-    "eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9."
-    "X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+N8N_API_KEY = creds.get("N8N_API_KEY")
 WORKFLOW_ID = "Ai9Y3FWjqMtEhr57"
 BACKUP_PATH = "/tmp/workflow_backup_stripe_v3.json"
 

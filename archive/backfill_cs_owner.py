@@ -28,10 +28,11 @@ import time
 import requests
 from datetime import datetime, timezone, timedelta
 from typing import Optional
+import creds
 
 # ── Credentials ───────────────────────────────────────────────────────────────
-NOTION_TOKEN    = "***REMOVED***"
-INTERCOM_TOKEN  = "***REMOVED***"
+NOTION_TOKEN    = creds.get("NOTION_TOKEN")
+INTERCOM_TOKEN  = creds.get("INTERCOM_TOKEN")
 
 ISSUES_DB_ID   = "bd1ed48de20e426f8bebeb8e700d19d8"   # Issues Table
 DS_ID          = "3ceb1ad0-91f1-40db-945a-c51c58035898"  # Master Customer Table data source

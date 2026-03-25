@@ -9,13 +9,14 @@ import re
 import anthropic
 import requests
 from datetime import date, datetime, timezone
+import creds
 
-INTERCOM_TOKEN  = "***REMOVED***"
+INTERCOM_TOKEN  = creds.get("INTERCOM_TOKEN")
 ALEX_ADMIN_ID   = "7484673"
 INTERCOM_APP_ID = "o0lp6qsb"
 INTERCOM_API    = "https://api.intercom.io"
 
-NOTION_TOKEN = "***REMOVED***"
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
 MCT_DS_ID    = "3ceb1ad0-91f1-40db-945a-c51c58035898"
 
 WEEK_START = date(2026, 2, 20)   # last Friday
@@ -30,7 +31,7 @@ headers = {
     "Content-Type":     "application/json",
 }
 
-ai = anthropic.Anthropic(api_key="***REMOVED***")
+ai = anthropic.Anthropic(api_key=creds.get("ANTHROPIC_API_KEY"))
 
 
 def _to_unix(d):

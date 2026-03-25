@@ -18,9 +18,10 @@ Run: python3 diagnose_alex_convs.py
 
 import requests
 from datetime import date, datetime, timezone
+import creds
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-INTERCOM_TOKEN = "***REMOVED***"
+INTERCOM_TOKEN = creds.get("INTERCOM_TOKEN")
 ALEX_ADMIN_ID  = "7484673"   # Alex de Godoy
 INTERCOM_APP_ID = "o0lp6qsb"
 

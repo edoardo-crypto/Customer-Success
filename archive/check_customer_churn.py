@@ -18,13 +18,14 @@ import sys
 import time
 import datetime
 import requests
+import creds
 
 # ── Credentials ───────────────────────────────────────────────────────────────
-STRIPE_KEY           = "***REMOVED***"
-NOTION_TOKEN         = "***REMOVED***"
+STRIPE_KEY           = creds.get("STRIPE_KEY")
+NOTION_TOKEN         = creds.get("NOTION_TOKEN")
 MCT_DS_ID            = "3ceb1ad0-91f1-40db-945a-c51c58035898"
 N8N_BASE             = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY          = "***REMOVED***"
+N8N_API_KEY          = creds.get("N8N_API_KEY")
 N8N_WEBHOOK_WF_ID    = "8cLtcqxjD8DC59JG"
 
 # ── Default search targets ─────────────────────────────────────────────────────

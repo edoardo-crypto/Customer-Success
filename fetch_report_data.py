@@ -21,16 +21,15 @@ import requests
 from datetime import datetime, date, timedelta
 from collections import defaultdict
 from pathlib import Path
-from dotenv import load_dotenv
+import creds
 
-load_dotenv()
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 
 NOTION_TOKEN      = os.environ["NOTION_TOKEN"]
 STRIPE_KEY        = os.environ.get("STRIPE_KEY", "")
 ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
-LINEAR_TOKEN      = os.environ.get("LINEAR_TOKEN") or "***REMOVED***"
+LINEAR_TOKEN      = creds.get("LINEAR_TOKEN")
 
 ISSUES_DB_ID = "bd1ed48de20e426f8bebeb8e700d19d8"
 MCT_DS_ID    = "3ceb1ad0-91f1-40db-945a-c51c58035898"

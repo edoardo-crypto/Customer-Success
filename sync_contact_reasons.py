@@ -31,11 +31,12 @@ import sys
 import urllib.request
 import urllib.error
 from datetime import date, datetime, timedelta, timezone
+import creds
 
 # ── Config ────────────────────────────────────────────────────────────────────
-NOTION_TOKEN      = "***REMOVED***"
+NOTION_TOKEN      = creds.get("NOTION_TOKEN")
 MCT_DS_ID         = "3ceb1ad0-91f1-40db-945a-c51c58035898"
-INTERCOM_TOKEN    = "***REMOVED***"
+INTERCOM_TOKEN    = creds.get("INTERCOM_TOKEN")
 
 # How far back to pull Intercom conversations
 LOOKBACK_DAYS = 180

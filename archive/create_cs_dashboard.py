@@ -11,9 +11,10 @@ Usage: python3 create_cs_dashboard.py
 
 import requests
 import sys
+import creds
 
 # ── Config ─────────────────────────────────────────────────────────────────────
-NOTION_TOKEN = "***REMOVED***"
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
 NOTION_VERSION = "2022-06-28"
 BASE_URL = "https://api.notion.com/v1"
 

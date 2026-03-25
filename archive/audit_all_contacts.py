@@ -21,13 +21,14 @@ import time
 import json
 import requests
 from requests.auth import HTTPBasicAuth
+import creds
 
 # ── Credentials ───────────────────────────────────────────────────────────────
 CLICKHOUSE_URL        = "https://ua2wi80os4.eu-central-1.aws.clickhouse.cloud:8443/"
 CLICKHOUSE_KEY_ID     = "default"
 CLICKHOUSE_KEY_SECRET = "***REMOVED***"
 
-NOTION_TOKEN = "***REMOVED***"
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
 MCT_DS_ID    = "3ceb1ad0-91f1-40db-945a-c51c58035898"
 
 # ── HTTP headers ──────────────────────────────────────────────────────────────

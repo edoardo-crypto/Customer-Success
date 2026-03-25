@@ -9,8 +9,9 @@ Archives:
 
 import requests
 import json
+import creds
 
-NOTION_TOKEN = "***REMOVED***"
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
 ISSUES_DB_ID = "bd1ed48de20e426f8bebeb8e700d19d8"
 TARGET_CONV_ID = "215473164094829"
 

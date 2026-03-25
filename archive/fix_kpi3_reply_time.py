@@ -12,9 +12,10 @@ Run: python3 fix_kpi3_reply_time.py
 
 import requests
 from datetime import date, datetime, timezone
+import creds
 
-NOTION_TOKEN   = "***REMOVED***"
-INTERCOM_TOKEN = "***REMOVED***"
+NOTION_TOKEN   = creds.get("NOTION_TOKEN")
+INTERCOM_TOKEN = creds.get("INTERCOM_TOKEN")
 
 # W09 page — used to look up the parent DB ID
 W09_PAGE_ID    = "311e418fd8c481b18552d12c067c1089"

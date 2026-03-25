@@ -20,11 +20,7 @@ import time
 # ---------------------------------------------------------------------------
 
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-N8N_API_KEY = (
-    "***REMOVED_JWT***"
-    ".eyJzdWIiOiI0ODJlMzA2MS04MjAwLTQ2ZTgtODBiZS1iZjJhYjE0Mzg0MTUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzcwNzIzNjIxLCJleHAiOjE3NzMyNzAwMDB9"
-    ".X4wZVbatYXVttzSEZIXQd-Ot--VbQupJsoNoOmZc8o0"
-)
+N8N_API_KEY = creds.get("N8N_API_KEY")
 
 CLICKHOUSE_CRED_ID   = "kionhtTQSKGgcIYt"
 CLICKHOUSE_CRED_NAME = "ClickHouse - AI Resolution Sync"
@@ -209,6 +205,7 @@ def _get_access_token() -> str:
         from cryptography.hazmat.primitives.serialization import load_pem_private_key
         from cryptography.hazmat.primitives import hashes
         from cryptography.hazmat.primitives.asymmetric import padding
+import creds
 
     now = int(_time.time())
     header = _b64url(json.dumps({"alg": "RS256", "typ": "JWT"}).encode())

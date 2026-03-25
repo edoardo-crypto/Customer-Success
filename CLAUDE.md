@@ -119,7 +119,7 @@ Assigned To    rollup of CS Owner from Customer relation
 fetch_report_data.py   →  report_data.json  →  generate_meeting_report.py  →  meeting_report.html
 ```
 
-- Reporting periods: P1 Feb 16–Mar 1 / P2 Mar 2–15 / P3 Mar 16–29 (hardcoded in `fetch_report_data.py`)
+- Reporting periods: weekly (W1, W2, W3…), hardcoded in `fetch_report_data.py`
 - In-scope issues: assigned to Alex or Aya, not type `No Issue` or `Config Issue`
 - Resolution snapshots frozen at P_start + 7d/14d/28d, stored in `resolution_snapshots.json`
 - Churn tracking: uses `📅 Churning Since` (decision date) for period bucketing, not `📅 Cancel Date`

@@ -20,8 +20,9 @@ import json
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone
+import creds
 
-NOTION_TOKEN = "***REMOVED***"
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
 ISSUES_DB_ID = "bd1ed48de20e426f8bebeb8e700d19d8"
 TODAY = "2026-02-20"
 

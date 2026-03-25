@@ -10,10 +10,11 @@ The n8n webhook (xdVkUh6YCtcuW8QM) remains the real-time primary; this is
 the fallback that catches missed events, network blips, or regressions.
 
 State mapping (identical to webhook Code node logic — name-first):
-  "testing"/"review"/"progress" in name → In Progress
-  "done"/"released"/"complete"/"resolved" in name → Resolved
-  type=started → In Progress  |  type=completed → Resolved
-  anything else (backlog, unstarted, canceled) → skip
+  "testing"/"review"/"progress" in name → In Progress  (NOT "scoped" — stays Open)
+  "done"/"released"/"complete"/"resolved"/"duplicate" in name → Resolved
+  "cancel" in name → Deprioritized
+  type=started → In Progress  |  type=completed → Resolved  |  type=cancelled → Deprioritized
+  anything else (backlog, unstarted) → skip
 
 Usage:
   python3 sync_linear_status.py          # live (default)
@@ -28,10 +29,11 @@ from datetime import date
 from typing import Optional
 
 import requests
+import creds
 
 # ── Credentials (env vars preferred; hardcoded as fallback for local runs) ─────
-NOTION_TOKEN = os.environ.get("NOTION_TOKEN") or "***REMOVED***"
-LINEAR_TOKEN = os.environ.get("LINEAR_TOKEN") or "***REMOVED***"
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
+LINEAR_TOKEN = creds.get("LINEAR_TOKEN")
 
 NOTION_VERSION = "2022-06-28"
 ISSUES_DB_ID = "bd1ed48de20e426f8bebeb8e700d19d8"
@@ -64,15 +66,19 @@ def map_linear_state(state_name: str, state_type: Optional[str]) -> Optional[str
 
     if any(kw in name_lower for kw in ("progress", "review", "testing")):
         return "In Progress"
-    if any(kw in name_lower for kw in ("done", "released", "complete", "resolved")):
+    if any(kw in name_lower for kw in ("done", "released", "complete", "resolved", "duplicate")):
         return "Resolved"
+    if "cancel" in name_lower:
+        return "Deprioritized"
 
     if t == "started":
         return "In Progress"
     if t == "completed":
         return "Resolved"
+    if t == "cancelled":
+        return "Deprioritized"
 
-    return None  # skip (backlog, unstarted, canceled, etc.)
+    return None  # skip (backlog, unstarted, etc.)
 
 
 # ── Notion helpers ─────────────────────────────────────────────────────────────

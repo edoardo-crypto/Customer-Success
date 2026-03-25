@@ -28,8 +28,9 @@ import sys
 import requests
 import statistics
 from datetime import datetime, timezone, date
+import creds
 
-INTERCOM_TOKEN = "***REMOVED***"
+INTERCOM_TOKEN = creds.get("INTERCOM_TOKEN")
 
 # Admin IDs (discovered Feb 24 2026 via GET /admins)
 ALEX_ID = "7484673"

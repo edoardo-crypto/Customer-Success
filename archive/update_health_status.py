@@ -1,7 +1,8 @@
 import urllib.request
 import json
+import creds
 
-token = '***REMOVED***'
+token = creds.get("NOTION_TOKEN")
 db_id = '84feda19cfaf4c6e9500bf21d2aaafef'
 ds_id = '3ceb1ad0-91f1-40db-945a-c51c58035898'
 block_id = '364a9bd6-413d-429b-b50b-9656cce4312a'

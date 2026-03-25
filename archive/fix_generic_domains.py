@@ -23,15 +23,16 @@ import urllib.parse
 import urllib.request
 import json
 from typing import Optional
+import creds
 
 # ── Control flag ────────────────────────────────────────────────────────────
 DRY_RUN = True          # Flip to False to write to Notion
 SKIP_MEDIUM = True      # Skip DuckDuckGo results when patching (recommended)
 
 # ── API credentials ─────────────────────────────────────────────────────────
-INTERCOM_TOKEN = "***REMOVED***"
-HUBSPOT_TOKEN  = "***REMOVED***"
-NOTION_TOKEN   = "***REMOVED***"
+INTERCOM_TOKEN = creds.get("INTERCOM_TOKEN")
+HUBSPOT_TOKEN  = creds.get("HUBSPOT_TOKEN")
+NOTION_TOKEN   = creds.get("NOTION_TOKEN")
 
 # ── The 29 companies ─────────────────────────────────────────────────────────
 COMPANIES = [

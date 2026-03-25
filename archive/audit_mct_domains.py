@@ -32,6 +32,7 @@ from typing import Optional
 # fix_generic_domains.py is in the same directory; its main() is guarded by
 # if __name__ == "__main__" so importing it is safe and side-effect-free.
 from fix_generic_domains import (
+import creds
     bare_domain,
     is_generic,
     lookup_intercom,
@@ -42,11 +43,8 @@ from fix_generic_domains import (
 )
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-NOTION_TOKEN = "***REMOVED***"
-STRIPE_KEY   = (
-    "***REMOVED***"
-    "DiFF7PsCgEn7xqeqwgYqibg2XPiPoncyKHXSIS00AE9P1HKZ"
-)
+NOTION_TOKEN = creds.get("NOTION_TOKEN")
+STRIPE_KEY = creds.get("STRIPE_KEY")
 NOTION_DS_ID = "3ceb1ad0-91f1-40db-945a-c51c58035898"
 OUTPUT_FILE  = "mct_domain_audit.json"
 

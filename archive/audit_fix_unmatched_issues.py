@@ -24,10 +24,11 @@ Steps:
 import sys
 import time
 import requests
+import creds
 
 # ── Credentials ───────────────────────────────────────────────────────────────
-INTERCOM_TOKEN = "***REMOVED***"
-NOTION_TOKEN   = "***REMOVED***"
+INTERCOM_TOKEN = creds.get("INTERCOM_TOKEN")
+NOTION_TOKEN   = creds.get("NOTION_TOKEN")
 
 NOTION_ISSUES_DB = "bd1ed48de20e426f8bebeb8e700d19d8"
 NOTION_DS_ID     = "3ceb1ad0-91f1-40db-945a-c51c58035898"  # MCT data source
@@ -37,15 +38,9 @@ GENERIC_DOMAINS = {
     "icloud.com", "protonmail.com", "live.com", "me.com",
 }
 
-STRIPE_TOKEN = (
-    "***REMOVED***"
-    "DiFF7PsCgEn7xqeqwgYqibg2XPiPoncyKHXSIS00AE9P1HKZ"
-)
+STRIPE_TOKEN = creds.get("STRIPE_KEY")
 
-ANTHROPIC_KEY = (
-    "***REMOVED***"
-    "CxzATZqnMZonZicxgwR2LlsWw-446IlgAA"
-)
+ANTHROPIC_KEY = creds.get("ANTHROPIC_API_KEY")
 
 intercom_headers = {
     "Authorization": f"Bearer {INTERCOM_TOKEN}",

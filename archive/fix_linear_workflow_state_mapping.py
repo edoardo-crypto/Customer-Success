@@ -10,9 +10,10 @@ instead of 'Resolved'.
 
 import json
 import requests
+import creds
 
 N8N_BASE = "https://konvoai.app.n8n.cloud"
-API_KEY  = "***REMOVED***"
+API_KEY  = creds.get("N8N_API_KEY")
 WF_ID    = "xdVkUh6YCtcuW8QM"
 
 HEADERS = {

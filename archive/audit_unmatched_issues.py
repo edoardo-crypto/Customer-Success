@@ -14,9 +14,10 @@ the unmatched count drops to zero.
 
 import time
 import requests
+import creds
 
 # ── Credentials ────────────────────────────────────────────────────────────────
-NOTION_TOKEN    = "***REMOVED***"
+NOTION_TOKEN    = creds.get("NOTION_TOKEN")
 NOTION_ISSUES_DB = "bd1ed48de20e426f8bebeb8e700d19d8"
 
 HEADERS = {
