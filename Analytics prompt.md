@@ -57,8 +57,8 @@ Before building the workflow, create the Google Service Account credential so th
 ### Node 2: HTTP Request — Query ClickHouse
 - Type: `n8n-nodes-base.httpRequest`
 - Method: `POST`
-- URL: `https://eqgkgzq14k.eu-west-1.aws.clickhouse.cloud:8443/?database=operator&user=***REMOVED***&password=***REMOVED***`
-  - Credentials are passed as query parameters (ClickHouse Cloud HTTP interface)
+- URL: `https://<CLICKHOUSE_HOST>:8443/?database=operator&user=<USER>&password=<PASSWORD>`
+  - Credentials are passed as query parameters (ClickHouse Cloud HTTP interface). Get values from Credentials.md.
 - Options: ClickHouse Cloud uses valid SSL certificates, so no special SSL config is needed
 - Headers: none needed (default Content-Type is fine for plain text body)
 - Body type: raw / string

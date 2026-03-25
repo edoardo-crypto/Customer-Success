@@ -149,43 +149,8 @@ import hmac
 import struct
 import time as _time
 
-SA_JSON = {
-    "type": "service_account",
-    "project_id": "konvoai-n8n",
-    "private_key_id": "***REMOVED***",
-    "private_key": (
-        "***REMOVED_KEY_BEGIN***\n"
-        "***REMOVED***\n"
-        "imgsP9vBdPJ0m6UUXlTFMUUi/4qM1hOvP4Sgvn+JSwI0mFUHYm51F6ToN+jtcSHK\n"
-        "QqQWoHKoRPCNclLgdhGPpbPKBuAVDIMdWPYbIC8x/8HTs6mePSg+pxogmFtmaTZe\n"
-        "5cp6FSRPmEa3RbBbxwKjV7kGEVkKdm8O3hhOeJO8SNaEIgyBi0YDhERPqCftnAEM\n"
-        "j6hDKUDnLon0ebMzh+hf/qs4AvWWPONOfQ3/aRJGqlsO5TRfaqgLDlBs7+uQoPSv\n"
-        "hbFDFJtOOnHRgiAPU9dAag2bM3Tr9RMSahWzu/FboacY/+wj/Gxs6J5SJ3dEL2PO\n"
-        "ljFz9pexAgMBAAECggEACUlLFuZXXCC4dHfx/KIvs3+QQDdb9OpCq3KvlF0Ha0Qg\n"
-        "gh+jTut3oPK2R6THwgxV7QCPk0ySTlJSlGAnmH4QPqTPl9h6SLaB3CxDg4nhBzSd\n"
-        "zkTUVfiDJ1w3MahXfU+aSj4pWzqz8tiyxXJaAUlfo85e2ZU9WHtkbUPxVzajGVmV\n"
-        "MuD4bm8fIArlzDcWtoMTLOq5XJiU2pCDsgzsgurhQ6cEhNxVCu28tXAe9B7T74df\n"
-        "vz1/yx8tkEEDUYwfIDzgFhlCvHA0EbLZ5jibcOWYT6O/Dn3bOoVdi9PJuBzGON6c\n"
-        "aO6n9rx+rOCZ6GGtxw4YN99WNJgLvSzTbQBSx035AQKBgQD1dlnaTn8lDiveet/q\n"
-        "NRw0dNppguEbf8QCTNEjyXuAj8N3WeTWhorniclbmGT3BN+9RXIkcqlDYSvVJCGr\n"
-        "xGyH34KBClr5RD/LQKsE+0UBNC8Zcq4MmjI5FVTqtd8plQ0EnZOgu44s4QCruQIw\n"
-        "yKZEWjGrkfa0grgRVQUO9mLgMQKBgQDfXckfDTORgeN2FVzxKDQLD3GlzG79pCsO\n"
-        "eZlT2kaGwp8j3ezmM6KkgIDtoTDeYpRh2wekvpUcl+XfHHy6933jXLcC9Fzuyy/5\n"
-        "vEkNMZblAEjtEz117Mixk5E66eEeZ96bDzMlSK1jDxf21pjfsrCMO5w37y7lLCYE\n"
-        "zLgsq5zPgQKBgBEd0aIxexhAZrq64sZYMcFOrLRS1hOu0yI97Q+Lyzrpy32VHSoA\n"
-        "c8s1hn8Gn3PCOT/fidgUzszOB9pzDI4HwnGvGlCZQkLDiZdIySQtyWAOHYKuxohG\n"
-        "cF4eqK89Q3SI2kGKI3M/4OgsQHm5CvgP5dg6WeBW61cnDmLXBOVINRjhAoGBAKpE\n"
-        "DnyqDoY7cc1giYGW+Nz5f9M3299i1iNpk/R0bdBp6O9pSx1LfQ5SmnUJq3vJv3w8\n"
-        "fz4YvQeXznVdfML0x7SZxzPsXC73GfIPkcwJ4hFcPzrgsLgEsBOU/l7fS2hnGywt\n"
-        "0Pn5xZm+NrFFcjELQEMVaYbFv4SYO77q4vXCN32BAoGBALqSLIVGtciBrBRYmGow\n"
-        "mc6GCxP8zuTmKoL5Hlvg2mcvqdwOFsFQoeewJnDd8EteaTMaYKg6i4msMaBgCeYA\n"
-        "BgkXcFuKAYHGn/tbdYBp8CM2WrlYS3Pg4m6l0d6FuHA89hJWN3aTN1PiN+wT5c9C\n"
-        "9+7m9Cq8ohSUj5MRZUW0H4WJ\n"
-        "***REMOVED_KEY_END***\n"
-    ),
-    "client_email": "n8n-bigquery@konvoai-n8n.iam.gserviceaccount.com",
-    "token_uri": "https://oauth2.googleapis.com/token",
-}
+SA_JSON = json.loads(os.environ.get("BIGQUERY_SA_JSON", "{}"))
+# Expected keys: type, project_id, private_key_id, private_key, client_email, token_uri
 
 
 def _b64url(data: bytes) -> str:

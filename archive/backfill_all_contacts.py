@@ -25,9 +25,9 @@ from requests.auth import HTTPBasicAuth
 import creds
 
 # ── Credentials ───────────────────────────────────────────────────────────────
-CLICKHOUSE_URL        = "https://ua2wi80os4.eu-central-1.aws.clickhouse.cloud:8443/"
-CLICKHOUSE_KEY_ID     = "default"
-CLICKHOUSE_KEY_SECRET = "***REMOVED***"
+CLICKHOUSE_URL        = os.environ.get("CLICKHOUSE_HOST", "").rstrip("/") + "/"
+CLICKHOUSE_KEY_ID     = os.environ.get("CLICKHOUSE_USER", "default")
+CLICKHOUSE_KEY_SECRET = os.environ.get("CLICKHOUSE_PASSWORD", "")
 
 NOTION_TOKEN = creds.get("NOTION_TOKEN")
 MCT_DS_ID    = "3ceb1ad0-91f1-40db-945a-c51c58035898"
