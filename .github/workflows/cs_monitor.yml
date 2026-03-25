@@ -1,0 +1,91 @@
+name: Weekly CS Team Monitor
+
+# Runs every Friday at 16:00 CET (= 14:00 UTC in winter / 15:00 CEST summer).
+# Can also be triggered manually from the GitHub Actions tab.
+
+on:
+  schedule:
+    - cron: '0 14 * * 5'    # Friday 14:00 UTC = 15:00 CET / 16:00 CEST
+  workflow_dispatch:          # Manual trigger
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── 2. Python ────────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      # ── 3. Fetch data ───────────────────────────────────────────────
+      - name: Fetch CS monitor data
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          INTERCOM_TOKEN: ${{ secrets.INTERCOM_TOKEN }}
+        run: python3 cs_monitor/fetch_cs_monitor_data.py
+
+      # ── 4. Generate HTML ──────────────────────────────────────────────
+      - name: Generate report
+        run: python3 cs_monitor/generate_cs_monitor.py
+
+      # ── 5. Commit snapshots + archived HTML ────────────────────────
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add cs_monitor/cs_monitor_snapshots.json cs_monitor/reports/*.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Weekly CS Team Monitor snapshot — $(date -u +%Y-%m-%d)"
+            git push
+          fi
+
+      # ── 6. Upload artifacts ─────────────────────────────────────────
+      - name: Upload HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cs-monitor-${{ github.run_id }}
+          path: |
+            cs_monitor/cs_team_monitor.html
+            cs_monitor/reports/*.html
+          retention-days: 90
+          if-no-files-found: warn
+
+      # ── 7. Slack notification (success → bot API, failure → webhook) ─
+      - name: Notify Slack (success)
+        if: success()
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: |
+          if [ -z "$SLACK_BOT_TOKEN" ]; then echo "No SLACK_BOT_TOKEN secret — skipping"; exit 0; fi
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          WEEK_LABEL=$(python3 -c "import json; d=json.load(open('cs_monitor/cs_monitor_data.json')); print(d['week_labels'][-1])")
+          curl -s -X POST "https://slack.com/api/chat.postMessage" \
+            -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"channel\":\"C0AGZDTUND6\",\"text\":\"📊 *CS Team Monitor* for ${WEEK_LABEL} is ready\n<${RUN_URL}|Open report>\"}"
+
+      - name: Notify Slack (failure)
+        if: failure()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_CS }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK" ]; then echo "No SLACK_WEBHOOK_CS secret — skipping"; exit 0; fi
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -s -X POST "${SLACK_WEBHOOK}" \
+            -H "Content-Type: application/json" \
+            --data-raw "{\"text\":\":x: CS Team Monitor report *FAILED* — <${RUN_URL}|View logs>\"}"
