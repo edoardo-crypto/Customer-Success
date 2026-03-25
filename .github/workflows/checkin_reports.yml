@@ -1,0 +1,53 @@
+name: Daily Check-in Reports
+
+# Runs after the Daily CS Sync completes (data is fresh), plus manual trigger.
+# Generates one HTML check-in report per active customer, deploys to GitHub Pages,
+# and updates the MCT with stable report URLs.
+
+on:
+  workflow_run:
+    workflows: ["Daily CS Sync"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  generate-and-deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      # ── 1. Get the code ────────────────────────────────────────────────
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # ── 2. Python ──────────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      # ── 3. Generate all check-in reports ───────────────────────────────
+      - name: Generate all check-in reports
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        run: python3 meetings/checkin/generate_all_checkins.py
+
+      # ── 4. Deploy to GitHub Pages (gh-pages branch) ────────────────────
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./meetings/checkin/site
+          keep_files: false
+
+      # ── 5. Update MCT with report URLs ─────────────────────────────────
+      - name: Update MCT report URLs
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        run: python3 meetings/checkin/update_mct_report_urls.py

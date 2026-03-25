@@ -1,0 +1,8 @@
+{
+  "updated": "2026-03",
+  "items": [
+    {"emoji": "📢", "title": "WhatsApp broadcast scheduling", "date": "Mar 2026", "description": "Schedule broadcasts up to 30 days in advance"},
+    {"emoji": "🧠", "title": "New AI model for product recommendations", "date": "Feb 2026", "description": "Improved accuracy for product recommendations"},
+    {"emoji": "🛒", "title": "Shopify V2 integration", "date": "Feb 2026", "description": "Full product catalog sync with Shopify V2 API"}
+  ]
+}

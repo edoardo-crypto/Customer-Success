@@ -36,5 +36,8 @@ env/
 *.csv
 *.docx
 
+# ── Check-in report site (generated, deployed to gh-pages) ───────────
+meetings/checkin/site/
+
 # ── Claude internal ───────────────────────────────────────────────────
 .claude/
