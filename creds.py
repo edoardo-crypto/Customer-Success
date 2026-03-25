@@ -36,19 +36,32 @@ _MAP = {
 _cache = {}
 
 
-def _extract_block(header):
-    """Parse a ```-fenced code block under ## {header} in Credentials.md."""
+def _extract_blocks(header):
+    """Return all ```-fenced code blocks under ## {header} in Credentials.md."""
+    blocks = []
     try:
         raw = open(_CREDS_FILE).read()
         start = raw.index(f"## {header}")
-        block_start = raw.index("```", start) + 3
-        # skip optional language tag (e.g. ```json)
-        if raw[block_start] not in ("\n", "\r"):
-            block_start = raw.index("\n", block_start) + 1
-        block_end = raw.index("```", block_start)
-        return raw[block_start:block_end].strip()
+        # Stop at the next ## heading (or end of file)
+        next_section = raw.find("\n## ", start + 1)
+        section = raw[start:next_section] if next_section != -1 else raw[start:]
+        pos = 0
+        while True:
+            bs = section.find("```", pos)
+            if bs == -1:
+                break
+            bs += 3
+            # skip optional language tag (e.g. ```json)
+            if bs < len(section) and section[bs] not in ("\n", "\r"):
+                bs = section.index("\n", bs) + 1
+            be = section.find("```", bs)
+            if be == -1:
+                break
+            blocks.append(section[bs:be].strip())
+            pos = be + 3
     except (FileNotFoundError, ValueError):
-        return None
+        pass
+    return blocks
 
 
 def get(name):
@@ -67,18 +80,18 @@ def get(name):
         raise RuntimeError(f"Unknown credential: {name}")
 
     header, prefix = _MAP[name]
-    block = _extract_block(header)
-    if block:
+    blocks = _extract_blocks(header)
+    for block in blocks:
         if prefix:
-            # Multi-value block: find the line matching the prefix
             for line in block.splitlines():
                 line = line.strip()
                 if line.startswith(prefix):
                     _cache[name] = line
                     return line
         else:
-            _cache[name] = block
-            return block
+            if block:
+                _cache[name] = block
+                return block
 
     raise RuntimeError(
         f"{name} not found. Set it as an env var or add it to Credentials.md "
