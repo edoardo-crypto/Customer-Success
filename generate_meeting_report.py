@@ -51,6 +51,9 @@ if _data:
     RESOLUTION_BY_PERIOD  = _data["resolution_by_period"]
     RESOLUTION_RATES      = _data["resolution_rates"]
     OPEN_BY_PRIORITY      = _data.get("open_by_priority", [])
+    SLA_DATA              = _data.get("sla_data", {"triage": {}, "resolution": {}})
+    TRIAGE_SLA_TARGETS     = {"Urgent": "1 bd", "High": "1 bd", "Medium": "1 bd"}
+    RESOLUTION_SLA_TARGETS = {"Urgent": "1 bd", "High": "3 bd", "Medium": "10 bd"}
     CHURNING_PIPELINE     = _data.get("churning_pipeline", [])
     CHURN_COMBINED        = _data.get("churn_combined", [])
     CHURN_VOLUME          = _data.get("churn_volume", [0, 0, 0])
@@ -261,6 +264,59 @@ def render_bug_feature_badges():
         + ''.join(cells) +
         '</div>'
     )
+
+
+def _render_sla_table(data_by_sev, sla_targets=None):
+    """Render an SLA table with Severity / Total / Breached / % columns."""
+    sev_colors = {"Urgent": "#FCA5A5", "High": "#FDBA74", "Medium": "#FDE68A"}
+    rows = ""
+    grand_total = 0
+    grand_breached = 0
+
+    for sev in ["Urgent", "High", "Medium"]:
+        d = data_by_sev.get(sev, {"total": 0, "breached": 0})
+        total = d["total"]
+        breached = d["breached"]
+        grand_total += total
+        grand_breached += breached
+        pct = round(breached / total * 100) if total > 0 else 0
+        color = "var(--green)" if pct == 0 else ("var(--yellow)" if pct <= 30 else "var(--red)")
+        dot_color = sev_colors.get(sev, "#D1D5DB")
+        target_label = ""
+        if sla_targets and sev in sla_targets:
+            target_label = f' <span style="color:var(--muted); font-weight:400; font-size:12px;">({sla_targets[sev]})</span>'
+        rows += f"""
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:10px 0;"><span style="display:inline-block; width:10px; height:10px; border-radius:50%;
+              background:{dot_color}; margin-right:8px;"></span>{sev}{target_label}</td>
+          <td style="text-align:center; padding:10px 0; font-size:20px; font-weight:700;">{total}</td>
+          <td style="text-align:center; padding:10px 0; font-size:20px; font-weight:700; color:{color};">{breached}</td>
+          <td style="text-align:center; padding:10px 0; font-size:20px; font-weight:700; color:{color};">{pct}%</td>
+        </tr>"""
+
+    # Totals row
+    total_pct = round(grand_breached / grand_total * 100) if grand_total > 0 else 0
+    total_color = "var(--green)" if total_pct == 0 else ("var(--yellow)" if total_pct <= 30 else "var(--red)")
+    rows += f"""
+        <tr>
+          <td style="padding:10px 0; font-weight:700;">Total</td>
+          <td style="text-align:center; padding:10px 0; font-size:20px; font-weight:700;">{grand_total}</td>
+          <td style="text-align:center; padding:10px 0; font-size:20px; font-weight:700; color:{total_color};">{grand_breached}</td>
+          <td style="text-align:center; padding:10px 0; font-size:20px; font-weight:700; color:{total_color};">{total_pct}%</td>
+        </tr>"""
+
+    return f"""
+      <table style="width:100%; border-collapse:collapse; font-size:15px;">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border);">
+            <th style="text-align:left; padding:8px 0; color:var(--muted); font-weight:500; font-size:13px;">SEVERITY</th>
+            <th style="text-align:center; padding:8px 0; color:var(--muted); font-weight:500; font-size:13px;">TOTAL</th>
+            <th style="text-align:center; padding:8px 0; color:var(--muted); font-weight:500; font-size:13px;">BREACHED</th>
+            <th style="text-align:center; padding:8px 0; color:var(--muted); font-weight:500; font-size:13px;">%</th>
+          </tr>
+        </thead>
+        <tbody>{rows}</tbody>
+      </table>"""
 
 
 def render_resolution_rate_table():
@@ -718,7 +774,8 @@ HTML = f"""<!DOCTYPE html>
   <div class="dot active" data-target="slide1" title="Bug Volume"></div>
   <div class="dot"        data-target="slide2" title="Categorization"></div>
   <div class="dot"        data-target="slide3" title="Resolution"></div>
-  <div class="dot"        data-target="slide4" title="Churns"></div>
+  <div class="dot"        data-target="slide4" title="SLA"></div>
+  <div class="dot"        data-target="slide5" title="Churns"></div>
 </nav>
 
 <!-- ══════════════════════════════════════════════════════════════════════
@@ -726,7 +783,7 @@ HTML = f"""<!DOCTYPE html>
 ════════════════════════════════════════════════════════════════════════ -->
 <section class="slide" id="slide1">
   <header class="slide-header">
-    <span class="slide-num">01 / 04</span>
+    <span class="slide-num">01 / 05</span>
     <h1 class="slide-title">Issues Volume &amp; Trend</h1>
     <span class="slide-subtitle">Target: −15% per period</span>
   </header>
@@ -769,7 +826,7 @@ HTML = f"""<!DOCTYPE html>
 ════════════════════════════════════════════════════════════════════════ -->
 <section class="slide" id="slide2">
   <header class="slide-header">
-    <span class="slide-num">02 / 04</span>
+    <span class="slide-num">02 / 05</span>
     <h1 class="slide-title">Issue Breakdown — {REVIEW_PERIOD}</h1>
     <span class="slide-subtitle">Category split &amp; what customers complained about</span>
   </header>
@@ -797,7 +854,7 @@ HTML = f"""<!DOCTYPE html>
 ════════════════════════════════════════════════════════════════════════ -->
 <section class="slide" id="slide3">
   <header class="slide-header">
-    <span class="slide-num">03 / 04</span>
+    <span class="slide-num">03 / 05</span>
     <h1 class="slide-title">Bugs Focus: Resolution Status of Engineering Tickets in Linear</h1>
     <span class="slide-subtitle">Bugs only — Open / In Progress / Resolved</span>
   </header>
@@ -835,11 +892,41 @@ HTML = f"""<!DOCTYPE html>
 </section>
 
 <!-- ══════════════════════════════════════════════════════════════════════
-     SLIDE 4 — Weekly Churn Trend
+     SLIDE 4 — SLA Compliance
 ════════════════════════════════════════════════════════════════════════ -->
 <section class="slide" id="slide4">
   <header class="slide-header">
-    <span class="slide-num">04 / 04</span>
+    <span class="slide-num">04 / 05</span>
+    <h1 class="slide-title">SLA Compliance</h1>
+    <span class="slide-subtitle">BUG Backlog Push project — Linear</span>
+  </header>
+
+  <div class="slide-body">
+    <div class="row" style="flex:1; gap:24px;">
+      <div class="card col" style="flex:1;">
+        <div class="card-title">Triage — Tickets Created This Week</div>
+        {_render_sla_table(SLA_DATA.get("triage", {}), sla_targets=TRIAGE_SLA_TARGETS)}
+        <div style="margin-top:12px; font-size:12px; color:var(--muted);">
+          SLA target: triage within 1 business day from ticket creation
+        </div>
+      </div>
+      <div class="card col" style="flex:1;">
+        <div class="card-title">Resolution — Open Tickets Past Triage</div>
+        {_render_sla_table(SLA_DATA.get("resolution", {}), sla_targets=RESOLUTION_SLA_TARGETS)}
+        <div style="margin-top:12px; font-size:12px; color:var(--muted);">
+          SLA target varies by severity (business days from triage completion)
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     SLIDE 5 — Weekly Churn Trend
+════════════════════════════════════════════════════════════════════════ -->
+<section class="slide" id="slide5">
+  <header class="slide-header">
+    <span class="slide-num">05 / 05</span>
     <h1 class="slide-title">Weekly Churn Trend</h1>
     <span class="slide-subtitle">Cancel-click date from Stripe</span>
   </header>
@@ -1175,7 +1262,7 @@ new Chart(document.getElementById('chart-churn-volume'), {{
 }});
 
 // ── DOT NAV + ARROW KEYS ─────────────────────────────────────────────
-const slides = ['slide1','slide2','slide3','slide4'];
+const slides = ['slide1','slide2','slide3','slide4','slide5'];
 const dots   = document.querySelectorAll('.dot');
 
 function activateDot(idx) {{

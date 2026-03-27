@@ -83,20 +83,20 @@ EXCLUDE_TYPES_SET = {"No Issue", "Config Issue"}
 # Notion Category → display name for slide 2 (maps to one of 4 chart buckets)
 # Items with no/unknown category → excluded from chart
 CATEGORY_DISPLAY = {
-    "AI Behavior":        "AI Behavior",
-    "Platform & UI":      "Platform & UI",
+    "AI Agent":           "AI Agent",
+    "Inbox":              "Inbox",
     "WhatsApp Marketing": "WhatsApp Marketing",
     "Integration":        "Integration",
-    # Legacy values — reclassified by backfill, but mapped here as fallback
-    "Feature request":    "WhatsApp Marketing",  # if somehow still present
-    "New feature":        "WhatsApp Marketing",  # legacy
-    "Billing & Account":  "Integration",         # legacy
+    "Platform & UI":      "Platform & UI",
+    # Legacy values — map to current categories
+    "AI Behavior":        "AI Agent",
+    "Feature request":    "WhatsApp Marketing",
+    "New feature":        "WhatsApp Marketing",
+    "Billing & Account":  "Integration",
 }
-# 4 named Notion category buckets — issues with no/unknown category are excluded from the chart
-CATEGORY_BUCKETS = ["AI Behavior", "Platform & UI", "WhatsApp Marketing", "Integration"]
+CATEGORY_BUCKETS = ["AI Agent", "Inbox", "WhatsApp Marketing", "Integration", "Platform & UI"]
 
-# Categories the classifier may assign (and that are valid in Notion)
-VALID_CATEGORIES = ["AI Behavior", "Platform & UI", "WhatsApp Marketing", "Integration"]
+VALID_CATEGORIES = ["AI Agent", "Inbox", "WhatsApp Marketing", "Integration", "Platform & UI"]
 # Old categories being retired — issues with these will be reclassified by backfill
 _RETIRED_CATEGORIES = {"Feature request", "New feature", "Billing & Account"}
 CLASSIFY_BATCH_SIZE = 20
@@ -352,27 +352,41 @@ def fetch_all_mct():
 CLASSIFY_PROMPT = """\
 Classify each customer-support issue into exactly one category.
 
-VALID CATEGORIES (use these exact strings):
-- AI Behavior       → AI responses, product recommendations, automated conversational AI, \
-AI giving wrong info, AI not responding, AI recommending wrong product
-- Platform & UI     → dashboard bugs, frontend not loading, app performance, onboarding screens, \
-inbox slowness, UI glitches, flows stopping mid-execution
-- WhatsApp Marketing → broadcast campaigns, CRM marketing sends, scheduled/bulk message sending, \
-broadcast not sending, UTM tracking, non-AI marketing messages, CRM campaign failures
-- Integration       → third-party connections (Shopify sync, Gorgias, external APIs, email/Outlook, \
-social channels, livechat), data not syncing between tools
+DECISION FLOWCHART — follow this order:
+1. Is it about a FLOW or BROADCAST? → WhatsApp Marketing
+2. Is it about an EXTERNAL TOOL not working with Konvo (Shopify, Gorgias, Zendesk, \
+Klaviyo, Outlook, WhatsApp/Instagram channel connection, files from external channel \
+not appearing, customer data from external tools not showing)? → Integration
+3. Is it about the AI's behavior, responses, or an AI-specific feature (product recs, \
+order lookup, handover, OTP handled by AI, AI not responding, AI response quality, \
+playground, personas)? → AI Agent
+4. Everything else about Konvo's own platform UI/inbox/messaging → Inbox
 
-RULES:
-- Broadcast/campaign sending issues → WhatsApp Marketing (NOT Integration)
-- AI recommending wrong product → AI Behavior (NOT Platform & UI)
-- App slow / UI broken / inbox not loading → Platform & UI
-- API/webhook/sync with external tool → Integration
+VALID CATEGORIES (use these exact strings):
+- AI Agent          → AI recommending wrong products, AI can't find orders, \
+handover/transfer failures, AI wrong language, OTP not identified by AI, \
+AI turned off/not responding, AI giving wrong info, AI-specific features (playground, personas)
+- Inbox             → inbox slow/not loading, messages missing/duplicated/expired, \
+notifications not updating, search bar issues, UI glitches, snooze bugs, conversation display
+- WhatsApp Marketing → ALL broadcast issues (not sending, errors, variables, media), \
+ALL flow issues (stopping, misfiring, wrong triggers, sent to wrong person, opt-out flows)
+- Integration       → Gorgias/Zendesk issues, Shopify/WooCommerce sync, Klaviyo data sync, \
+email/Outlook/Instagram/WhatsApp channel connection, files from external channels not appearing, \
+customer data from external tools not showing, OTP/SMS delivery from provider
+
+DISAMBIGUATION:
+- ALL flow and broadcast bugs → WhatsApp Marketing (no exceptions, even AI opt-out flows)
+- Files/attachments from external channels not appearing in Konvo → Integration (NOT Inbox)
+- Customer data from Shopify/Klaviyo not showing in Konvo → Integration (NOT Inbox)
+- Gorgias/Zendesk limited functionality → Integration (NOT Inbox)
+- "AI" in title but platform feature broken (not AI-specific) → Inbox
+- OTP from SMS provider failing → Integration; OTP not identified by AI → AI Agent
 
 ISSUES:
 {issues_json}
 
 Return ONLY a JSON object mapping each "id" to its "category".
-Example: {{"abc": "AI Behavior", "def": "Integration"}}
+Example: {{"abc": "AI Agent", "def": "Integration"}}
 Use the exact strings above. No other text."""
 
 
@@ -509,6 +523,13 @@ def parse_issue(page):
         "cs_owner":     cs_owner,
         "title":        get_title(page, "Issue Title"),
         "linear_url":   get_url(page, "Linear Ticket URL"),
+        "severity":     get_select(page, "Severity") or "",
+        "ticket_creation_date": get_date(page, "Ticket creation date"),
+        "triaged_at":   get_date(page, "Triaged At"),
+        "sla_triage_deadline":    get_date(page, "SLA Triage Deadline"),
+        "sla_resolution_deadline": get_date(page, "SLA Resolution Deadline"),
+        "triage_sla_met":     get_select(page, "Triage SLA Met") or "",
+        "resolution_sla_met": get_select(page, "Resolution SLA Met") or "",
         "is_bug":       issue_type in BUG_TYPES_SET,
         "is_feature":   issue_type in FEATURE_TYPES_SET,
         "is_excluded":  is_excluded,
@@ -860,12 +881,63 @@ def fetch_linear_priorities(urls: list[str]) -> dict[str, str]:
     return {u: ident_to_priority.get(ident, "None") for u, ident in url_to_ident.items()}
 
 
+def fetch_linear_issue_details(urls: list[str]) -> dict[str, dict]:
+    """
+    Given Linear URLs, batch-query for priority + state type.
+    Returns { url: {"priority": "Urgent", "state_type": "started"} }
+    """
+    if not LINEAR_TOKEN or not urls:
+        return {}
+
+    headers = {"Authorization": LINEAR_TOKEN, "Content-Type": "application/json"}
+    url_to_ident = {}
+    by_team: dict[str, list[int]] = {}
+    for u in urls:
+        ident = _extract_linear_identifier(u)
+        if not ident:
+            continue
+        url_to_ident[u] = ident
+        m = re.match(r"^([A-Z]+)-(\d+)$", ident)
+        if m:
+            by_team.setdefault(m.group(1), []).append(int(m.group(2)))
+
+    query = """
+    query($teamKey: String!, $numbers: [Float!]!) {
+      issues(filter: {
+        team: { key: { eq: $teamKey } },
+        number: { in: $numbers }
+      }) {
+        nodes { identifier priority state { name type } }
+      }
+    }
+    """
+
+    ident_to_detail = {}
+    for team_key, numbers in by_team.items():
+        resp = requests.post(LINEAR_GQL, headers=headers,
+                             json={"query": query, "variables": {"teamKey": team_key, "numbers": numbers}})
+        if resp.status_code != 200:
+            print(f"  [WARN] Linear detail query failed for {team_key}: {resp.status_code}")
+            continue
+        for node in resp.json().get("data", {}).get("issues", {}).get("nodes", []):
+            state = node.get("state") or {}
+            ident_to_detail[node["identifier"]] = {
+                "priority": PRIORITY_NAMES.get(node.get("priority", 0), "None"),
+                "state_type": state.get("type", ""),
+                "state_name": state.get("name", ""),
+            }
+
+    return {u: ident_to_detail.get(ident, {"priority": "None", "state_type": "", "state_name": ""})
+            for u, ident in url_to_ident.items()}
+
+
 # ── SLIDE 3: RESOLUTION STATUS ────────────────────────────────────────────────
 
-def build_slide3(issues_by_period, snapshots):
+def build_slide3(issues_by_period, snapshots, all_issues_flat=None):
     """
     snapshots is mutated in-place when a new snapshot window becomes due.
     Caller must call save_snapshots() after this returns.
+    all_issues_flat: ALL parsed issues (not period-filtered), used for SLA metrics.
     """
     resolution_by_period = []
     resolution_rates     = []
@@ -942,10 +1014,78 @@ def build_slide3(issues_by_period, snapshots):
                 counts[prio] += 1
         open_by_priority.append(counts)
 
+    # ── SLA metrics — query Linear BUG Backlog Push project directly ─────
+    cur_period = PERIOD_RANGES[-1]
+    cur_start = cur_period["start"]
+    cur_end   = cur_period["end"]
+    BUG_PROJECT_ID = "7aa31126-9b3e-4e32-bc09-8e13e2e49721"
+    PAST_TRIAGE_TYPES = {"backlog", "unstarted", "started"}
+    PRIO_DISPLAY = {"Urgent": "Urgent", "High": "High", "Medium": "Medium", "Low": "Medium", "None": "Medium"}
+
+    print(f"   Fetching BUG Backlog Push project issues from Linear (SLA)…")
+    sla_query = """
+    query($projectId: String!) {
+      project(id: $projectId) {
+        issues(first: 250, filter: { state: { type: { nin: ["completed", "cancelled"] } } }) {
+          nodes { identifier priority createdAt state { name type } }
+        }
+      }
+    }
+    """
+    sla_headers = {"Authorization": LINEAR_TOKEN, "Content-Type": "application/json"}
+    sla_resp = requests.post(LINEAR_GQL, headers=sla_headers,
+                             json={"query": sla_query, "variables": {"projectId": BUG_PROJECT_ID}})
+    project_issues = []
+    if sla_resp.status_code == 200:
+        project_issues = (sla_resp.json().get("data") or {}).get("project", {}).get("issues", {}).get("nodes", [])
+    print(f"   → {len(project_issues)} active issues in project")
+
+    # TRIAGE: tickets created this week, split by priority
+    triage_created_this_week = [
+        n for n in project_issues
+        if n.get("createdAt", "")[:10] >= cur_start
+        and n.get("createdAt", "")[:10] <= cur_end
+    ]
+
+    sla_triage = {d: {"total": 0, "breached": 0} for d in ["Urgent", "High", "Medium"]}
+    for n in triage_created_this_week:
+        prio_name = PRIORITY_NAMES.get(n.get("priority", 0), "None")
+        display = PRIO_DISPLAY.get(prio_name, "Medium")
+        sla_triage[display]["total"] += 1
+        # Breached = still in triage past 1 business day from creation
+        if (n["state"]["type"] == "triage"
+                and n.get("createdAt", "")[:10] < str(TODAY - timedelta(days=1))):
+            sla_triage[display]["breached"] += 1
+
+    triage_total = sum(v["total"] for v in sla_triage.values())
+    triage_breached = sum(v["breached"] for v in sla_triage.values())
+
+    # RESOLUTION: all tickets past triage, grouped by priority
+    sla_resolution = {d: {"total": 0, "breached": 0} for d in ["Urgent", "High", "Medium"]}
+
+    past_triage_issues = [n for n in project_issues if n["state"]["type"] in PAST_TRIAGE_TYPES]
+    for n in past_triage_issues:
+        prio_name = PRIORITY_NAMES.get(n.get("priority", 0), "None")
+        display = PRIO_DISPLAY.get(prio_name, "Medium")
+        sla_resolution[display]["total"] += 1
+        # SLA breach check: cross-reference with Notion if possible (via identifier)
+        # For now, deadlines are set from April 1 — no breaches yet
+
+    print(f"   → Triage: {triage_total} this week ({triage_breached} breached)")
+    print(f"   → Resolution: {len(past_triage_issues)} past triage")
+
+    sla_data = {
+        "triage": sla_triage,
+        "triage_total": triage_total,
+        "triage_breached": triage_breached,
+        "resolution": sla_resolution,
+    }
+
     return {
         "resolution_by_period": resolution_by_period,
         "resolution_rates":     resolution_rates,
         "open_by_priority":     open_by_priority,
+        "sla_data":             sla_data,
     }
 
 
@@ -1131,7 +1271,7 @@ def build_report_data(no_classify=False):
     print("🔨 Building slides…")
     s1 = build_slide1(issues_by_period)
     s2 = build_slide2(issues_by_period)
-    s3 = build_slide3(issues_by_period, snapshots)   # may mutate snapshots
+    s3 = build_slide3(issues_by_period, snapshots, all_issues)  # may mutate snapshots
     save_snapshots(snapshots)                         # persist any newly-computed snapshots
     s5 = build_slide5(mct_pages)
     takeaways = build_slide2_takeaways(issues_by_period)
