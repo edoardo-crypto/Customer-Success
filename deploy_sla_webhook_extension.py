@@ -176,6 +176,11 @@ if (event.stateChanged) {
     patchProps.Status = { select: { name: targetStatus } };
     if (targetStatus === 'Resolved' && !resolvedAt) {
       patchProps['Resolved At'] = { date: { start: new Date().toISOString() } };
+      // Resolution SLA Met?
+      if (resDeadline) {
+        const met = new Date() <= new Date(resDeadline) ? 'Yes' : 'No';
+        patchProps['Resolution SLA Met'] = { select: { name: met } };
+      }
     }
     hasChanges = true;
   }
@@ -198,6 +203,12 @@ if (event.stateChanged && event.newStateType !== 'triage' && !triagedAt) {
 
   // Reset SLA Status — triage phase is complete, start fresh for resolution
   patchProps['SLA Status'] = { select: { name: 'On Track' } };
+
+  // Triage SLA Met?
+  if (triageDeadline) {
+    const met = now <= new Date(triageDeadline) ? 'Yes' : 'No';
+    patchProps['Triage SLA Met'] = { select: { name: met } };
+  }
 
   // Compute resolution deadline
   const effectiveSeverity = (patchProps.Severity?.select?.name) || currentSeverity;

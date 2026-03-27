@@ -285,10 +285,12 @@ def main():
         triaged_at_empty = not triaged_at_str
 
         triage_deadline_prop = (props.get("SLA Triage Deadline") or {}).get("date") or {}
-        triage_deadline_empty = not triage_deadline_prop.get("start")
+        triage_deadline_str = triage_deadline_prop.get("start", "")
+        triage_deadline_empty = not triage_deadline_str
 
         resolution_deadline_prop = (props.get("SLA Resolution Deadline") or {}).get("date") or {}
-        resolution_deadline_empty = not resolution_deadline_prop.get("start")
+        resolution_deadline_str = resolution_deadline_prop.get("start", "")
+        resolution_deadline_empty = not resolution_deadline_str
 
         ticket_creation_prop = (props.get("Ticket creation date") or {}).get("date") or {}
         ticket_creation_str = ticket_creation_prop.get("start", "")
@@ -301,7 +303,9 @@ def main():
             "current_severity": current_severity,
             "triaged_at_str": triaged_at_str,
             "triaged_at_empty": triaged_at_empty,
+            "triage_deadline_str": triage_deadline_str,
             "triage_deadline_empty": triage_deadline_empty,
+            "resolution_deadline_str": resolution_deadline_str,
             "resolution_deadline_empty": resolution_deadline_empty,
             "ticket_creation_str": ticket_creation_str,
         })
@@ -353,6 +357,14 @@ def main():
             patch_props["Status"] = {"select": {"name": target_status}}
             if target_status == "Resolved" and row["resolved_at_empty"]:
                 patch_props["Resolved At"] = {"date": {"start": TODAY}}
+                # Resolution SLA Met? Compare resolve moment vs resolution deadline
+                if row["resolution_deadline_str"]:
+                    res_dl_dt = parse_triaged_at(row["resolution_deadline_str"])
+                    if res_dl_dt:
+                        now_dt_check = datetime.now(tz=CET)
+                        met = "Yes" if now_dt_check <= res_dl_dt else "No"
+                        patch_props["Resolution SLA Met"] = {"select": {"name": met}}
+                        actions.append(f"res_sla={met}")
             actions.append(f"status → {target_status}")
 
         # ── Priority → Severity sync ──────────────────────────────────────
@@ -372,6 +384,15 @@ def main():
             # Reset SLA Status — triage phase is complete, start fresh for resolution
             patch_props["SLA Status"] = {"select": {"name": "On Track"}}
             actions.append("sla_status → On Track")
+
+            # Triage SLA Met? Compare now (triage moment) vs triage deadline
+            if not row["triage_deadline_empty"]:
+                triage_dl_dt = parse_triaged_at(row.get("triage_deadline_str", ""))
+                now_dt_check = datetime.now(tz=CET)
+                if triage_dl_dt:
+                    met = "Yes" if now_dt_check <= triage_dl_dt else "No"
+                    patch_props["Triage SLA Met"] = {"select": {"name": met}}
+                    actions.append(f"triage_sla={met}")
 
             # Compute resolution deadline from severity
             sev = target_severity or row["current_severity"]
