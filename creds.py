@@ -31,6 +31,7 @@ _MAP = {
     "SLACK_WEBHOOK_CS": ("Slack",            "https://hooks.slack.com"),
     "ANTHROPIC_API_KEY": ("Anthropic (Claude)", None),
     "N8N_API_KEY":      ("n8n",              "eyJ"),
+    "SLA_SLACK_CHANNEL": ("Slack",           "C"),
 }
 
 _cache = {}

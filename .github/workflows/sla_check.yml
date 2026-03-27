@@ -1,0 +1,37 @@
+name: SLA Check
+
+# Runs every hour Mon-Fri during business hours (08-18 CET = 07-17 UTC).
+# Checks all open bugs for approaching or breached SLA deadlines and
+# posts warnings / breach alerts to the #sla-alerts Slack channel.
+#
+# Can be triggered manually from the GitHub Actions tab → "Run workflow".
+
+on:
+  schedule:
+    - cron: '0 7-17 * * 1-5'   # Every hour, Mon-Fri, 07-17 UTC
+  workflow_dispatch:              # Manual trigger
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Check SLA deadlines
+        env:
+          NOTION_TOKEN:     ${{ secrets.NOTION_TOKEN }}
+          LINEAR_TOKEN:     ${{ secrets.LINEAR_TOKEN }}
+          SLACK_BOT_TOKEN:  ${{ secrets.SLACK_BOT_TOKEN }}
+          SLA_SLACK_CHANNEL: ${{ secrets.SLA_SLACK_CHANNEL }}
+        run: python3 check_sla_deadlines.py
