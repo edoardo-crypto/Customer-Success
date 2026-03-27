@@ -1,0 +1,21 @@
+name: Validate Workflow Script References
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - '**.py'
+      - 'scripts/validate_workflow_scripts.sh'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Validate workflow script references
+        run: bash scripts/validate_workflow_scripts.sh --ci

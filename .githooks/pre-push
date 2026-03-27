@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# pre-push — blocks push if any workflow YAML references an uncommitted script.
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+VALIDATOR="$REPO_ROOT/scripts/validate_workflow_scripts.sh"
+
+if [ ! -f "$VALIDATOR" ]; then
+  echo "Warning: scripts/validate_workflow_scripts.sh not found — skipping validation."
+  exit 0
+fi
+
+exec bash "$VALIDATOR"
