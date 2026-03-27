@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Bugs — Konvo AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #F8FAFC;
+    color: #1E293B;
+    min-height: 100vh;
+  }
+
+  .header {
+    background: #fff;
+    border-bottom: 1px solid #E2E8F0;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0F172A;
+  }
+  .total-badge {
+    background: #EF4444;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .header-right {
+    font-size: 13px;
+    color: #94A3B8;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    padding: 8px 32px 0;
+    font-size: 12px;
+    color: #94A3B8;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 16px 32px 24px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; padding: 16px; }
+  }
+
+  .quadrant {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(50vh - 50px);
+  }
+
+  .quad-header {
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #F1F5F9;
+    flex-shrink: 0;
+  }
+  .quad-name {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .quad-count {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 12px;
+    min-width: 28px;
+    text-align: center;
+  }
+
+  .quad-body {
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  /* ── Subsections (collapsible) ── */
+  .subsection {
+    border-bottom: 1px solid #F1F5F9;
+  }
+  .subsection:last-child {
+    border-bottom: none;
+  }
+  .sub-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    transition: background 0.1s;
+  }
+  .sub-header:hover {
+    background: #F8FAFC;
+  }
+  .sub-header::-webkit-details-marker {
+    display: none;
+  }
+  .sub-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+  }
+  .sub-name::before {
+    content: '\25B8';
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 11px;
+    color: #94A3B8;
+    transition: transform 0.15s;
+  }
+  details[open] > .sub-header .sub-name::before {
+    transform: rotate(90deg);
+  }
+  .sub-count {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .sub-bugs {
+    background: #FAFBFC;
+    border-top: 1px solid #F1F5F9;
+  }
+
+  /* ── Bug rows ── */
+  .bug-row {
+    display: grid;
+    grid-template-columns: 10px 1fr 2.5fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 18px 8px 30px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.1s;
+  }
+  .bug-row:hover {
+    background: #F1F5F9;
+  }
+
+  .sev-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .bug-customer {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bug-title {
+    font-size: 12px;
+    color: #64748B;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bug-age {
+    font-size: 11px;
+    color: #94A3B8;
+    white-space: nowrap;
+  }
+
+  .empty-state {
+    padding: 32px;
+    text-align: center;
+    color: #CBD5E1;
+    font-size: 14px;
+  }
+
+  .uncategorized {
+    margin: 0 32px 24px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    overflow: hidden;
+    border-top: 4px solid #94A3B8;
+  }
+
+  .footer {
+    text-align: center;
+    padding: 16px;
+    font-size: 12px;
+    color: #CBD5E1;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Open Bugs</h1>
+    <span class="total-badge">115</span>
+  </div>
+  <div class="header-right">Last updated: Mar 27, 2026 at 14:14 UTC</div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot" style="background:#EF4444"></span> Urgent</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#F59E0B"></span> Important</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#94A3B8"></span> Not important</div>
+</div>
+
+<div class="grid">
+
+    <div class="quadrant" style="border-top: 4px solid #F97316;">
+      <div class="quad-header" style="background:#FFF7ED;">
+        <span class="quad-name" style="color:#F97316">AI Agent</span>
+        <span class="quad-count" style="background:#F97316">34</span>
+      </div>
+      <div class="quad-body">
+        
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">Product recommendations</span>
+            <span class="sub-count" style="color:#F97316">8</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/32de418fd8c480aab78cdadc0d2919d5" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">PureSkincare</span>
+            <span class="bug-title">Product Groups got deleted </span>
+            <span class="bug-age">3d ago</span>
+          </a>
+<a href="https://notion.so/32de418fd8c48053ae59d2cbefe077f1" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">PureSkincare</span>
+            <span class="bug-title">The AI recommended a “Draft” product.</span>
+            <span class="bug-age">3d ago</span>
+          </a>
+<a href="https://notion.so/32de418fd8c481288a9af81c33c4362f" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">Unknown</span>
+            <span class="bug-title">Product sync redone to prevent out-of-stock recommendations</span>
+            <span class="bug-age">3d ago</span>
+          </a>
+<a href="https://notion.so/32ce418fd8c481459d39f4275462b00f" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">MU Brand</span>
+            <span class="bug-title">Incorrect stock information provided to customer</span>
+            <span class="bug-age">3d ago</span>
+          </a>
+<a href="https://notion.so/32de418fd8c481ccaed5e9320d7cfbdb" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">ODOREM MEDITERRANEA, SL</span>
+            <span class="bug-title">AI incorrectly reports products as unavailable despite stock data</span>
+            <span class="bug-age">4d ago</span>
+          </a>
+<a href="https://notion.so/329e418fd8c48093a759cc58210c9e3d" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Sepiia</span>
+            <span class="bug-title">AI is not recommending products even though it has the skill</span>
+            <span class="bug-age">7d ago</span>
+          </a>
+<a href="https://notion.so/32de418fd8c4814689aee9d4bbc97542" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">ODOREM MEDITERRANEA, SL</span>
+            <span class="bug-title">AI incorrectly reporting products as unavailable</span>
+            <span class="bug-age">9d ago</span>
+          </a>
+<a href="https://notion.so/31fe418fd8c480b5b0aaf1c096877aec" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Northdeco</span>
+            <span class="bug-title">The AI was not able to read metafields set up inside of the products (to test)</span>
+            <span class="bug-age">16d ago</span>
+          </a></div>
+        </details>
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">Order management</span>
+            <span class="sub-count" style="color:#F97316">3</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/32fe418fd8c48034ba16e248fe926aa2" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">VALMAS GROUP LIMITED</span>
+            <span class="bug-title">Order Management not working for them. The AI is not being able to find orders and keep saying it fails to find it</span>
+            <span class="bug-age">today</span>
+          </a>
+<a href="https://notion.so/321e418fd8c4815da73bf17599584df2" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">APRILPLANTS</span>
+            <span class="bug-title">AI failed to retrieve order status with correct order number</span>
+            <span class="bug-age">15d ago</span>
+          </a>
+<a href="https://notion.so/31fe418fd8c48117a53dd4a1837428bc" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">APRILPLANTS</span>
+            <span class="bug-title">AI failed to retrieve order status with correct order number</span>
+            <span class="bug-age">16d ago</span>
+          </a></div>
+        </details>
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">Handover & transfers</span>
+            <span class="sub-count" style="color:#F97316">7</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/32fe418fd8c4814fb8f5ff1e9f4f4c08" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Small Beer</span>
+            <span class="bug-title">AI requesting human transfer confirmation twice</span>
+            <span class="bug-age">today</span>
+          </a>
+<a href="https://notion.so/32ee418fd8c480cdbf6be2a553731a4d" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Atlas Flowers Limited</span>
+            <span class="bug-title">When email collection is active in the live chat widget , the AI still asks for the email of the client before doing the handover even if it was already given before starting the chat </span>
+            <span class="bug-age">?</span>
+          </a>
+<a href="https://notion.so/329e418fd8c481f3bf45c24c87818ce5" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Muk Barcelona</span>
+            <span class="bug-title">AI handover message not translating to conversation language</span>
+            <span class="bug-age">8d ago</span>
+          </a>
+<a href="https://notion.so/327e418fd8c481fc804cc01e8669354e" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Aguas do Paraño</span>
+            <span class="bug-title">AI sends handover instruction instead of following it</span>
+            <span class="bug-age">9d ago</span>
+          </a>
+<a href="https://notion.so/325e418fd8c481588783ebc6f07439d9" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">MUN FERMENTS SL</span>
+            <span class="bug-title">AI misinterpreted 'no' as address incorrect in flow</span>
+            <span class="bug-age">11d ago</span>
+          </a>
+<a href="https://notion.so/321e418fd8c481138020c1262c8f15fd" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Goodbye, Rita S.L</span>
+            <span class="bug-title">AI did not follow transfer instructions</span>
+            <span class="bug-age">15d ago</span>
+          </a>
+<a href="https://notion.so/311e418fd8c481808f68f3b9dbe0ab08" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">Northdeco</span>
+            <span class="bug-title">AI handover message sent after transfer completed</span>
+            <span class="bug-age">32d ago</span>
+          </a></div>
+        </details>
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">Language & formatting</span>
+            <span class="sub-count" style="color:#F97316">3</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/326e418fd8c481b0a41fd42994090280" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Muk Barcelona</span>
+            <span class="bug-title">AI responds to English clients in Spanish</span>
+            <span class="bug-age">10d ago</span>
+          </a>
+<a href="https://notion.so/31be418fd8c481caa49df5e5987b75e4" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">ODOREM MEDITERRANEA, SL</span>
+            <span class="bug-title">AI sending /n/n formatting characters in client messages </span>
+            <span class="bug-age">23d ago</span>
+          </a>
+<a href="https://notion.so/314e418fd8c4813a9055fcc007029e17" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Aguas do Paraño</span>
+            <span class="bug-title">AI switched languages in the same message</span>
+            <span class="bug-age">28d ago</span>
+          </a></div>
+        </details>
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">OTP & verification</span>
+            <span class="sub-count" style="color:#F97316">4</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/31be418fd8c481b68962d3db22bfe5cc" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">MUN FERMENTS SL</span>
+            <span class="bug-title">OTP code not identified by AI</span>
+            <span class="bug-age">21d ago</span>
+          </a>
+<a href="https://notion.so/320e418fd8c481bb921aeb4086c9d32c" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">MUN FERMENTS SL</span>
+            <span class="bug-title">AI falsely promises SMS OTP for subscription management</span>
+            <span class="bug-age">22d ago</span>
+          </a>
+<a href="https://notion.so/317e418fd8c4812d87f5d61e2eb83501" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">MUN FERMENTS SL</span>
+            <span class="bug-title">OTP code not received from AI assistant</span>
+            <span class="bug-age">25d ago</span>
+          </a>
+<a href="https://notion.so/317e418fd8c4812bb5cedf7cd8db4263" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">MUN FERMENTS SL</span>
+            <span class="bug-title">OTP verification failed due to AI technical error</span>
+            <span class="bug-age">30d ago</span>
+          </a></div>
+        </details>
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">AI not responding</span>
+            <span class="sub-count" style="color:#F97316">4</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/32fe418fd8c4817f83f3d5db8a8c9e5f" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Siwon</span>
+            <span class="bug-title">AI not working despite being enabled</span>
+            <span class="bug-age">2d ago</span>
+          </a>
+<a href="https://notion.so/32de418fd8c48003bbc4c3c1f865a196" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">IDOL VERSION S.L.</span>
+            <span class="bug-title">AI was turned off </span>
+            <span class="bug-age">2d ago</span>
+          </a>
+<a href="https://notion.so/32ce418fd8c4819c90f3d425af7ea2d5" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">The Stage Ventures SL</span>
+            <span class="bug-title">Emails stuck in automated queue without AI response</span>
+            <span class="bug-age">4d ago</span>
+          </a>
+<a href="https://notion.so/32ce418fd8c481c5aa54ff9dbabf7055" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Unknown</span>
+            <span class="bug-title">Emails abandoned in Automated without AI handling</span>
+            <span class="bug-age">6d ago</span>
+          </a></div>
+        </details>
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">AI response quality</span>
+            <span class="sub-count" style="color:#F97316">3</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/32fe418fd8c48077b22bc726b074b059" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">The Cool Bottles Company SL</span>
+            <span class="bug-title">AI added the custom answer reference(</span>
+            <span class="bug-age">?</span>
+          </a>
+<a href="https://notion.so/32de418fd8c48056aa21fb7584df5185" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">PureSkincare</span>
+            <span class="bug-title">“Why this reply” sources are not working. Even when a source appears it’s not shown in the platform</span>
+            <span class="bug-age">3d ago</span>
+          </a>
+<a href="https://notion.so/31fe418fd8c48196b231e72876cb40c5" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">CANDYPET SL</span>
+            <span class="bug-title">AI failed to identify itself in customer conversation</span>
+            <span class="bug-age">17d ago</span>
+          </a></div>
+        </details>
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">Other</span>
+            <span class="sub-count" style="color:#F97316">2</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/330e418fd8c481fcb628d3b939924b11" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">CANDYPET SL</span>
+            <span class="bug-title">AI did not respond to client message outside open inbox</span>
+            <span class="bug-age">today</span>
+          </a>
+<a href="https://notion.so/32ce418fd8c48186ba27c82bf23002a9" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">Valquer Laboratorios S.L.U.</span>
+            <span class="bug-title">AI misidentified product from image</span>
+            <span class="bug-age">4d ago</span>
+          </a></div>
+        </details>
+      </div>
+    </div>
+
+    <div class="quadrant" style="border-top: 4px solid #3B82F6;">
+      <div class="quad-header" style="background:#EFF6FF;">
+        <span class="quad-name" style="color:#3B82F6">Inbox</span>
+        <span class="quad-count" style="background:#3B82F6">34</span>
+      </div>
+      <div class="quad-body">
+        
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">Speed & performance</span>
+            <span class="sub-count" style="color:#3B82F6">6</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/32ce418fd8c4805baa86f73fc8071f64" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Health Nutrition Lab</span>
+            <span class="bug-title">navigating through the inbox is not smooth/fast</span>
+            <span class="bug-age">4d ago</span>
+          </a>
+<a href="https://notion.so/325e418fd8c48016aebcfd8adc39867c" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Uperform</span>
+            <span class="bug-title">Inbox speed issues and slow usage </span>
+            <span class="bug-age">?</span>
+          </a>
+<a href="https://notion.so/321e418fd8c480fa8bf7fee0bd286e25" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">Crea Decora Recicla SL</span>
+            <span class="bug-title">Inbox speed issues, the inbox is not immediate</span>
+            <span class="bug-age">14d ago</span>
+          </a>
+<a href="https://notion.so/320e418fd8c480c485edd84c86c36563" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">Mublio B.V.</span>
+            <span class="bug-title">in the inbox the sending messages sometimes appears twice, or takes a while to appear </span>
+            <span class="bug-age">15d ago</span>
+          </a>
+<a href="https://notion.so/31fe418fd8c480a58ba8c8882e39a4c2" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Frutas Marol</span>
+            <span class="bug-title">Some messages sent through the Konvo inbox, appear as “loading” and take some time to arrive to the final user. Sometimes they do not even arrive</span>
+            <span class="bug-age">16d ago</span>
+          </a>
+<a href="https://notion.so/311e418fd8c481f8a44ec5967bcdf437" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Alma cosmetica</span>
+            <span class="bug-title">Inbox not loading messages without refresh</span>
+            <span class="bug-age">31d ago</span>
+          </a></div>
+        </details>
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">Messages & conversations</span>
+            <span class="sub-count" style="color:#3B82F6">25</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/330e418fd8c48171b493da1d0113fd17" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Unknown</span>
+            <span class="bug-title">Email thread linked to wrong contact</span>
+            <span class="bug-age">today</span>
+          </a>
+<a href="https://notion.so/32fe418fd8c481edb969c1df80dce22c" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Odisei Music</span>
+            <span class="bug-title">Email address leaked into another customer's conversation</span>
+            <span class="bug-age">today</span>
+          </a>
+<a href="https://notion.so/32fe418fd8c480118d6dd6a3d4c0b3c8" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Matcha Jeans</span>
+            <span class="bug-title">AI Opening conversation and not / or yes sending the form (same 2 tickets that for conguitos)</span>
+            <span class="bug-age">1d ago</span>
+          </a>
+<a href="https://notion.so/32fe418fd8c481ffadaeff46f58c24ba" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Crea Decora Recicla SL</span>
+            <span class="bug-title">Snooze button visual bug affecting consecutive conversations</span>
+            <span class="bug-age">2d ago</span>
+          </a>
+<a href="https://notion.so/32ce418fd8c48158a665d8665bb037e4" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Madequa</span>
+            <span class="bug-title">Flow conversation assignment not moving to open status</span>
+            <span class="bug-age">3d ago</span>
+          </a>
+<a href="https://notion.so/32ce418fd8c4813dbda9e4db90bfc60c" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">The Stage Ventures SL</span>
+            <span class="bug-title">Side conversations is not working</span>
+            <span class="bug-age">3d ago</span>
+          </a>
+<a href="https://notion.so/32ce418fd8c48006abe0fdb6d3f2f099" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">Health Nutrition Lab</span>
+            <span class="bug-title">When 2 users are answering at the sdame time, one message appears in the conversation that the other one is connected</span>
+            <span class="bug-age">4d ago</span>
+          </a>
+<a href="https://notion.so/32ce418fd8c4807883c4ccc664ad2ae8" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">Health Nutrition Lab</span>
+            <span class="bug-title">Name of the user that appear in the Feed is different than the one that appears inside the actual conversation specifically when both of them are connected to Konvo</span>
+            <span class="bug-age">4d ago</span>
+          </a>
+<a href="https://notion.so/32ce418fd8c4812d9e9cd5f91bda2d42" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Crea Decora Recicla SL</span>
+            <span class="bug-title">WhatsApp conversation showing expired service window error</span>
+            <span class="bug-age">4d ago</span>
+          </a>
+<a href="https://notion.so/329e418fd8c4812b9600cb30fc6b78cf" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">The Balance Phone SL</span>
+            <span class="bug-title">Multiple conversations open simultaneously during ticketing</span>
+            <span class="bug-age">7d ago</span>
+          </a>
+<a href="https://notion.so/329e418fd8c481089c5ef7bf561a0eaf" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Snap360 App</span>
+            <span class="bug-title">Multiple conversations open simultaneously during ticketing setup</span>
+            <span class="bug-age">7d ago</span>
+          </a>
+<a href="https://notion.so/328e418fd8c481a2bbd9f78db446c424" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Goodbye, Rita S.L</span>
+            <span class="bug-title">Conversations expiring after 24hrs, foreign customer issues</span>
+            <span class="bug-age">7d ago</span>
+          </a>
+<a href="https://notion.so/325e418fd8c4811291f5f72469b03972" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">ODOREM MEDITERRANEA, SL</span>
+            <span class="bug-title">Audio transcriptions not available in conversation</span>
+            <span class="bug-age">11d ago</span>
+          </a>
+<a href="https://notion.so/325e418fd8c4810d91b3d323b149b438" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Orvis UK</span>
+            <span class="bug-title">AI transfer email delayed in Konvo inbox</span>
+            <span class="bug-age">11d ago</span>
+          </a>
+<a href="https://notion.so/321e418fd8c480f9b0dde47d2f9fe4c3" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Crea Decora Recicla SL</span>
+            <span class="bug-title">When sending a broadcast feeds in the Open feed get sent to closed and they then have to open</span>
+            <span class="bug-age">14d ago</span>
+          </a>
+<a href="https://notion.so/321e418fd8c48108a320fb712ebbb394" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">CHOCOLATES TORRAS, S.A.</span>
+            <span class="bug-title">Order management with WooCommerce doesn't work</span>
+            <span class="bug-age">15d ago</span>
+          </a>
+<a href="https://notion.so/320e418fd8c481e6bb96d4a83516df0f" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Orvis UK</span>
+            <span class="bug-title">Attachments from Microsoft are not appearing in app</span>
+            <span class="bug-age">15d ago</span>
+          </a>
+<a href="https://notion.so/320e418fd8c480ffba62d403824a1b50" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">Mublio B.V.</span>
+            <span class="bug-title">Snooze messages sometime will appear again in open after the time is done. </span>
+            <span class="bug-age">15d ago</span>
+          </a>
+<a href="https://notion.so/321e418fd8c48134b6a7cc3a68764bf3" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Orvis UK</span>
+            <span class="bug-title">Attachments from Microsoft not appearing in app</span>
+            <span class="bug-age">16d ago</span>
+          </a>
+<a href="https://notion.so/320e418fd8c48159b3baeadb135d9263" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">CO2 YOU Limited</span>
+            <span class="bug-title">WhatsApp messages not syncing to Gorgias integration</span>
+            <span class="bug-age">16d ago</span>
+          </a>
+<a href="https://notion.so/31fe418fd8c4808b8fc0c83e0ffd3704" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">Frutas Marol</span>
+            <span class="bug-title">Sometimes, the red dot notification in the inbox does not update after conversation has been replied. Meaning that you open a conversation, reply to it, and on the inbox will sill appear as “pending” </span>
+            <span class="bug-age">16d ago</span>
+          </a>
+<a href="https://notion.so/31fe418fd8c481599356f0c242892b3b" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Doña Tomasa</span>
+            <span class="bug-title">Contact responses not appearing in Konvo platform</span>
+            <span class="bug-age">17d ago</span>
+          </a>
+<a href="https://notion.so/320e418fd8c481c79845de0fb83d9f64" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">The Salad Code Company</span>
+            <span class="bug-title">WhatsApp messages not syncing to Gorgias</span>
+            <span class="bug-age">18d ago</span>
+          </a>
+<a href="https://notion.so/319e418fd8c4817a88c1f826d7b91c02" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Alhamas Artesania</span>
+            <span class="bug-title">Missing messages/conversations, duplicate &amp; closed</span>
+            <span class="bug-age">23d ago</span>
+          </a>
+<a href="https://notion.so/312e418fd8c48187bfa9fa7574b24c15" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Atlas Flowers Limited</span>
+            <span class="bug-title">Notifications not being sent out</span>
+            <span class="bug-age">29d ago</span>
+          </a></div>
+        </details>
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">Other UI glitches</span>
+            <span class="sub-count" style="color:#3B82F6">3</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/32ee418fd8c4807e96a4e42a5659af9f" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">UAF ATID SL</span>
+            <span class="bug-title">search bar is not useable</span>
+            <span class="bug-age">2d ago</span>
+          </a>
+<a href="https://notion.so/328e418fd8c480bf91c0eb30ba7dcd49" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">VALMAS GROUP LIMITED</span>
+            <span class="bug-title">When adding a /Get order status in the proccess. If you write the command you want to add, once you add the command you’ll have the “get” there</span>
+            <span class="bug-age">7d ago</span>
+          </a>
+<a href="https://notion.so/31fe418fd8c480b6804bef9ddedea321" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">Madequa</span>
+            <span class="bug-title">search bar does not accept spaces between the numebrs</span>
+            <span class="bug-age">16d ago</span>
+          </a></div>
+        </details>
+      </div>
+    </div>
+
+    <div class="quadrant" style="border-top: 4px solid #22C55E;">
+      <div class="quad-header" style="background:#F0FDF4;">
+        <span class="quad-name" style="color:#22C55E">WhatsApp Marketing</span>
+        <span class="quad-count" style="background:#22C55E">32</span>
+      </div>
+      <div class="quad-body">
+        
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">Broadcasts not sending</span>
+            <span class="sub-count" style="color:#22C55E">15</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/330e418fd8c481cca050dfdefce17953" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">UAF ATID SL</span>
+            <span class="bug-title">Broadcasts not sending and returning error</span>
+            <span class="bug-age">today</span>
+          </a>
+<a href="https://notion.so/330e418fd8c4817dabdafdfae443152b" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">ACUARIUM SUCS SLU</span>
+            <span class="bug-title">broadcasts not sending and returning an error</span>
+            <span class="bug-age">today</span>
+          </a>
+<a href="https://notion.so/32fe418fd8c481d1aa29c0a11a8e0704" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Muk Barcelona</span>
+            <span class="bug-title">Broadcast all returning error status and not sending</span>
+            <span class="bug-age">today</span>
+          </a>
+<a href="https://notion.so/32fe418fd8c481b48f3bee4e04a81065" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">NATANA COSMETICS SL</span>
+            <span class="bug-title">Broadcast returning error status and not sending</span>
+            <span class="bug-age">1d ago</span>
+          </a>
+<a href="https://notion.so/32fe418fd8c4810687bdc88f12684ec1" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">VITURON S.L</span>
+            <span class="bug-title">Broadcast all returning error status and not sending</span>
+            <span class="bug-age">1d ago</span>
+          </a>
+<a href="https://notion.so/32fe418fd8c48143aa2befdd955fa500" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Unknown</span>
+            <span class="bug-title">Broadcast returned an error for multiple times</span>
+            <span class="bug-age">1d ago</span>
+          </a>
+<a href="https://notion.so/32ee418fd8c4805dbd20d6988869cb2a" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">UAF ATID SL</span>
+            <span class="bug-title">broadcast have not been sent</span>
+            <span class="bug-age">2d ago</span>
+          </a>
+<a href="https://notion.so/32fe418fd8c4819f9d32edc541c74ec9" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Grippadel (Agency, have account for free)</span>
+            <span class="bug-title">The broadcast got stuck in pending template, but the template w</span>
+            <span class="bug-age">2d ago</span>
+          </a>
+<a href="https://notion.so/327e418fd8c48100880bee74dda3c4be" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">Sepiia</span>
+            <span class="bug-title">Campaign cost not showing in broadcast section</span>
+            <span class="bug-age">9d ago</span>
+          </a>
+<a href="https://notion.so/326e418fd8c4812eb014df4f57ebebf6" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Madequa</span>
+            <span class="bug-title">Broadcasts with variables showing errors and not sending</span>
+            <span class="bug-age">10d ago</span>
+          </a>
+<a href="https://notion.so/320e418fd8c480ff866af02c7093464e" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Synsera</span>
+            <span class="bug-title">Broadcast was not sent because of media file issue. The file they uploaded was bigger than the accepted size, which lead the entire campaign to fail even though it shows as “sent”</span>
+            <span class="bug-age">16d ago</span>
+          </a>
+<a href="https://notion.so/31fe418fd8c480a58559db6df977b06f" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Frutas Marol</span>
+            <span class="bug-title">Broadcast sent by the customer was not sent. Both a scheduled broadcast and a broadcast sent right at the moment. In both cases the audience list appears as dynamic and as loading and never sent</span>
+            <span class="bug-age">16d ago</span>
+          </a>
+<a href="https://notion.so/31fe418fd8c4817d9373de4c6968bedf" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">ACE and Tate</span>
+            <span class="bug-title">Broadcasts with flows/variables not sending despite finalized</span>
+            <span class="bug-age">17d ago</span>
+          </a>
+<a href="https://notion.so/319e418fd8c481b4b154de5c6a10747e" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">MU Brand</span>
+            <span class="bug-title">Programmed broadcast error prevented sending</span>
+            <span class="bug-age">23d ago</span>
+          </a>
+<a href="https://notion.so/30be418fd8c48184bb45d62e895291a4" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">WORKFIA LLC</span>
+            <span class="bug-title">First name variables failing in CSV broadcast campaigns</span>
+            <span class="bug-age">37d ago</span>
+          </a></div>
+        </details>
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">Flows stopping / misfiring</span>
+            <span class="sub-count" style="color:#22C55E">16</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/32ce418fd8c481959059f619f4c611ed" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Platadepalo</span>
+            <span class="bug-title">Opt out flow did not activate with trigger word</span>
+            <span class="bug-age">4d ago</span>
+          </a>
+<a href="https://notion.so/32ce418fd8c481deaefcd0edfd23dd18" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">CANDYPET SL</span>
+            <span class="bug-title">Flow stopped in the middle and did not continue</span>
+            <span class="bug-age">6d ago</span>
+          </a>
+<a href="https://notion.so/329e418fd8c4815bb1c7e4335e318861" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">The Salad Code Company</span>
+            <span class="bug-title">Flow sent to wrong user YOLANDA (recurring issue)</span>
+            <span class="bug-age">7d ago</span>
+          </a>
+<a href="https://notion.so/329e418fd8c481749e4bcc3ac4751d41" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Siwon</span>
+            <span class="bug-title">Flows stop working</span>
+            <span class="bug-age">9d ago</span>
+          </a>
+<a href="https://notion.so/325e418fd8c4807aa080c2ed7f43097b" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Finca la Mesa S.L.</span>
+            <span class="bug-title">Flow stop in the middle</span>
+            <span class="bug-age">10d ago</span>
+          </a>
+<a href="https://notion.so/325e418fd8c481f69394fad705689f0e" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">MUN FERMENTS SL</span>
+            <span class="bug-title">Flow reply triggered infinite loop of closing messages</span>
+            <span class="bug-age">13d ago</span>
+          </a>
+<a href="https://notion.so/322e418fd8c48166ac1be8d7e75bf68c" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Mood Collection SA</span>
+            <span class="bug-title">Flow triggers not activating for some customers</span>
+            <span class="bug-age">14d ago</span>
+          </a>
+<a href="https://notion.so/320e418fd8c480ea9d1bc9928109722c" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">The Salad Code Company</span>
+            <span class="bug-title">Post purchase flow was sent to the wrong phone number, the customer number is 666743866 and we sent the flow to 616743866</span>
+            <span class="bug-age">16d ago</span>
+          </a>
+<a href="https://notion.so/320e418fd8c4815b8346d885fa5db9e9" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Levid Cosmetics, S.L</span>
+            <span class="bug-title">Flows with trigger words not activating in some cases</span>
+            <span class="bug-age">16d ago</span>
+          </a>
+<a href="https://notion.so/31fe418fd8c4805bab66d1a6dae82812" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Frutas Marol</span>
+            <span class="bug-title">Some customers that have placed orders, are not recieving the Post Purchase flow</span>
+            <span class="bug-age">16d ago</span>
+          </a>
+<a href="https://notion.so/320e418fd8c48164bbd3d24f557bf3ef" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Eturel</span>
+            <span class="bug-title">Flows with trigger words not getting activated</span>
+            <span class="bug-age">17d ago</span>
+          </a>
+<a href="https://notion.so/31ee418fd8c4815b9867ce9beb449e4a" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">MUN FERMENTS SL</span>
+            <span class="bug-title">Multiple closing conversation flows triggered simultaneously</span>
+            <span class="bug-age">18d ago</span>
+          </a>
+<a href="https://notion.so/31be418fd8c481998efed4fbb4ce8bdf" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">MUN FERMENTS SL</span>
+            <span class="bug-title">Flow triggering multiple times despite once-only configuration</span>
+            <span class="bug-age">22d ago</span>
+          </a>
+<a href="https://notion.so/31ae418fd8c481ee9548d9492f1a32e9" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Ferent</span>
+            <span class="bug-title">Flow created without client confirmation</span>
+            <span class="bug-age">23d ago</span>
+          </a>
+<a href="https://notion.so/309e418fd8c4814ab860cd48115c8a47" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">FITPLANET BRAND SL</span>
+            <span class="bug-title">Flow first message auto-switching to simple message</span>
+            <span class="bug-age">41d ago</span>
+          </a>
+<a href="https://notion.so/32fe418fd8c48142bd3eed3bda1184c7" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Matcha Jeans</span>
+            <span class="bug-title">Matcha Jeans</span>
+            <span class="bug-age">?</span>
+          </a></div>
+        </details>
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">Other</span>
+            <span class="sub-count" style="color:#22C55E">1</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/32ee418fd8c4800887b4f8ddbe6a3043" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">UAF ATID SL</span>
+            <span class="bug-title">sent 2 times, disappears</span>
+            <span class="bug-age">2d ago</span>
+          </a></div>
+        </details>
+      </div>
+    </div>
+
+    <div class="quadrant" style="border-top: 4px solid #A78BFA;">
+      <div class="quad-header" style="background:#F5F3FF;">
+        <span class="quad-name" style="color:#A78BFA">Integration</span>
+        <span class="quad-count" style="background:#A78BFA">14</span>
+      </div>
+      <div class="quad-body">
+        
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">Helpdesk</span>
+            <span class="sub-count" style="color:#A78BFA">2</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/31fe418fd8c4801aba9bf675b43076e0" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Platanomelon</span>
+            <span class="bug-title">They cannot recommend products over Gorgias or Zendesk.</span>
+            <span class="bug-age">16d ago</span>
+          </a>
+<a href="https://notion.so/31fe418fd8c480e7b1a9e3aacecd3ccc" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Platanomelon</span>
+            <span class="bug-title">The AI cannot send files over Gorgias or ZendDesk</span>
+            <span class="bug-age">16d ago</span>
+          </a></div>
+        </details>
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">Shopify / product sync</span>
+            <span class="sub-count" style="color:#A78BFA">2</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/32fe418fd8c4818182c2f2462f90e50b" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Pilar Martín</span>
+            <span class="bug-title">client order are not getting synced correctly , we asked them to </span>
+            <span class="bug-age">2d ago</span>
+          </a>
+<a href="https://notion.so/32de418fd8c48120b44ee2517c6a084a" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">Madequa</span>
+            <span class="bug-title">Product sync update needed for Shopify product images</span>
+            <span class="bug-age">3d ago</span>
+          </a></div>
+        </details>
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">Channels (Email, Instagram, WhatsApp)</span>
+            <span class="sub-count" style="color:#A78BFA">4</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/32fe418fd8c481ac8acaea6fb292f04c" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">PureSkincare</span>
+            <span class="bug-title">Weird merge between live chat and whatsApp conversation caused the A</span>
+            <span class="bug-age">1d ago</span>
+          </a>
+<a href="https://notion.so/32de418fd8c481e7bfc7da865fa0128e" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">NATANA COSMETICS SL</span>
+            <span class="bug-title">WhatsApp audio message transcripts stopped appearing</span>
+            <span class="bug-age">2d ago</span>
+          </a>
+<a href="https://notion.so/329e418fd8c48169a8c6efcf7582327a" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Grippadel (Agency, have account for free)</span>
+            <span class="bug-title">Not receiving messages in Konvo</span>
+            <span class="bug-age">6d ago</span>
+          </a>
+<a href="https://notion.so/32fe418fd8c4814cbaf9fc0178cb3a62" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">The Cool Bottles Company SL</span>
+            <span class="bug-title">AI responds to old emails when Outlook email status is toggled from unread to read</span>
+            <span class="bug-age">?</span>
+          </a></div>
+        </details>
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">CRM data sync</span>
+            <span class="sub-count" style="color:#A78BFA">3</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/32ce418fd8c4808d854ed7d216f87be7" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#94A3B8" title="Not important"></span>
+            <span class="bug-customer">Health Nutrition Lab</span>
+            <span class="bug-title">Klaviyo not synching</span>
+            <span class="bug-age">4d ago</span>
+          </a>
+<a href="https://notion.so/321e418fd8c48056928df808944f868f" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">The Stage Ventures SL</span>
+            <span class="bug-title">Klaviyo properties are not synching</span>
+            <span class="bug-age">15d ago</span>
+          </a>
+<a href="https://notion.so/31fe418fd8c480fd9585dab31e704457" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Frutas Marol</span>
+            <span class="bug-title">Some customer orders do not appear in the customer profile over Konvo inbox.</span>
+            <span class="bug-age">16d ago</span>
+          </a></div>
+        </details>
+        <details class="subsection">
+          <summary class="sub-header">
+            <span class="sub-name">Other</span>
+            <span class="sub-count" style="color:#A78BFA">3</span>
+          </summary>
+          <div class="sub-bugs"><a href="https://notion.so/32fe418fd8c481fd963de5c409903d37" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Madequa</span>
+            <span class="bug-title">Webhook failed to create contact feed ID, message not sent</span>
+            <span class="bug-age">2d ago</span>
+          </a>
+<a href="https://notion.so/31fe418fd8c480f3868efc5a1adf5fd7" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">Frutas Marol</span>
+            <span class="bug-title">Final customer has sent a file over whatsapp and the file does not appear in Konvo</span>
+            <span class="bug-age">16d ago</span>
+          </a>
+<a href="https://notion.so/317e418fd8c48179adacca9ba3b73a49" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
+            <span class="bug-customer">MUN FERMENTS SL</span>
+            <span class="bug-title">OTP codes expiring immediately &amp; unauthorized SMS sending</span>
+            <span class="bug-age">25d ago</span>
+          </a></div>
+        </details>
+      </div>
+    </div>
+</div>
+
+    <div class="uncategorized">
+      <div class="quad-header" style="background:#F8FAFC;">
+        <span class="quad-name" style="color:#64748B">Uncategorized</span>
+        <span class="quad-count" style="background:#64748B">1</span>
+      </div>
+      <div class="quad-body">
+        <details class="subsection" open>
+          <summary class="sub-header"><span class="sub-name">Needs classification</span><span class="sub-count" style="color:#64748B">1</span></summary>
+          <div class="sub-bugs"><a href="https://notion.so/330e418fd8c481a0a1dfe81f0884a988" target="_blank" class="bug-row">
+            <span class="sev-dot" style="background:#EF4444" title="Urgent"></span>
+            <span class="bug-customer">Muk Barcelona</span>
+            <span class="bug-title">AI answered English-speaking client in Spanish</span>
+            <span class="bug-age">today</span>
+          </a></div>
+        </details>
+      </div>
+    </div>
+
+<div class="footer">Auto-updated every 2h during business hours</div>
+
+</body>
+</html>
