@@ -1,0 +1,48 @@
+name: Open Bugs Dashboard
+
+# Auto-updates every 2 hours during business hours (Mon-Fri 8am-8pm CET).
+# Also runs manually and after the Daily CS Sync completes.
+
+on:
+  schedule:
+    - cron: '0 6,8,10,12,14,16,18 * * 1-5'   # every 2h, 07-19 CET (UTC+1)
+  workflow_run:
+    workflows: ["Daily CS Sync"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  update-dashboard:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Fetch open bugs from Notion
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        run: python3 open_bugs/fetch_open_bugs.py
+
+      - name: Generate HTML dashboard
+        run: python3 open_bugs/generate_open_bugs.py
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./open_bugs/site
+          destination_dir: open-bugs
+          keep_files: false

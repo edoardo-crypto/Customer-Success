@@ -88,3 +88,10 @@ jobs:
           NOTION_TOKEN:   ${{ secrets.NOTION_TOKEN }}
           INTERCOM_TOKEN: ${{ secrets.INTERCOM_TOKEN }}
         run: python3 sync_contact_reasons.py
+
+      # ── 9. classify_untagged_issues.py → Category for unclassified issues ──
+      - name: Classify untagged issues
+        env:
+          NOTION_TOKEN:     ${{ secrets.NOTION_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 classify_untagged_issues.py
