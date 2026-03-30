@@ -359,13 +359,17 @@ def _rows_to_metrics(rows):
         prev_idx = anchors[j - 1]
         curr_idx = anchors[j]
 
-        # Label: start date of this bi-weekly period
-        ws = week_starts[prev_idx]
+        # Label: date range of this bi-weekly period (e.g. "Feb 10–23")
         try:
-            d = datetime.strptime(ws, "%Y-%m-%d") + timedelta(days=7)
-            label = d.strftime("%b %d").replace(" 0", " ")
+            start = datetime.strptime(week_starts[prev_idx], "%Y-%m-%d") + timedelta(days=7)
+            end = datetime.strptime(week_starts[curr_idx], "%Y-%m-%d") + timedelta(days=6)
+            s_str = start.strftime("%b %d").replace(" 0", " ")
+            e_str = start.strftime("%b") == end.strftime("%b") \
+                and str(end.day) \
+                or end.strftime("%b %d").replace(" 0", " ")
+            label = f"{s_str}–{e_str}"
         except ValueError:
-            label = ws
+            label = week_starts[curr_idx]
         labels.append(label)
 
         d_count = max(0, int(cum_count[curr_idx] - cum_count[prev_idx]))
