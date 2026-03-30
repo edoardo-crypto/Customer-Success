@@ -279,16 +279,16 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">🤖</div>
-        <div class="metric-value" style="color:var(--blue);">92%</div>
+        <div class="metric-value" style="color:var(--blue);">89%</div>
         <div class="metric-label">AI Resolution Rate</div>
-        <div class="metric-sub"></div>
+        <div class="metric-sub">-1% vs prev. period</div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
-        <div class="metric-value" style="color:var(--green);">74</div>
+        <div class="metric-value" style="color:var(--green);">64</div>
         <div class="metric-label">AI Conversations</div>
-        <div class="metric-sub">68 by AI · 6 by humans</div>
+        <div class="metric-sub">57 by AI · 7 by humans</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
       <div class="metric-card">
@@ -302,7 +302,7 @@
 
     <div class="charts-row">
       <div class="card">
-        <div class="card-title">AI conversations &amp; resolution — last 6 months</div>
+        <div class="card-title">AI conversations &amp; resolution — bi-weekly</div>
         <div class="chart-container">
           <canvas id="chart-tickets" height="220"></canvas>
         </div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["Mar"];
-const TOTAL_TICKETS = [74];
-const AI_RESOLVED   = [68];
-const HOURS_SAVED   = [3.4];
+const WEEKS = ["Feb 23", "Mar 9", "Mar 23"];
+const TOTAL_TICKETS = [24, 38, 26];
+const AI_RESOLVED   = [22, 34, 23];
+const HOURS_SAVED   = [1.1, 1.7, 1.1];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',

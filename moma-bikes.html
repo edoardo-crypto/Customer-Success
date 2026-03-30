@@ -281,7 +281,7 @@
         <div class="metric-icon">🤖</div>
         <div class="metric-value" style="color:var(--blue);">27%</div>
         <div class="metric-label">AI Resolution Rate</div>
-        <div class="metric-sub"></div>
+        <div class="metric-sub">+13% vs prev. period</div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
@@ -302,7 +302,7 @@
 
     <div class="charts-row">
       <div class="card">
-        <div class="card-title">AI conversations &amp; resolution — last 6 months</div>
+        <div class="card-title">AI conversations &amp; resolution — bi-weekly</div>
         <div class="chart-container">
           <canvas id="chart-tickets" height="220"></canvas>
         </div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["Mar"];
-const TOTAL_TICKETS = [217];
-const AI_RESOLVED   = [59];
-const HOURS_SAVED   = [3.0];
+const WEEKS = ["Feb 23", "Mar 9", "Mar 23"];
+const TOTAL_TICKETS = [0, 76, 141];
+const AI_RESOLVED   = [0, 19, 40];
+const HOURS_SAVED   = [0.0, 0.9, 2.0];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',

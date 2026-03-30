@@ -302,7 +302,7 @@
 
     <div class="charts-row">
       <div class="card">
-        <div class="card-title">AI conversations &amp; resolution — last 6 months</div>
+        <div class="card-title">AI conversations &amp; resolution — bi-weekly</div>
         <div class="chart-container">
           <canvas id="chart-tickets" height="220"></canvas>
         </div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["Mar"];
-const TOTAL_TICKETS = [3];
-const AI_RESOLVED   = [3];
-const HOURS_SAVED   = [0.1];
+const WEEKS = ["Feb 23", "Mar 9", "Mar 23"];
+const TOTAL_TICKETS = [0, 0, 3];
+const AI_RESOLVED   = [0, 0, 3];
+const HOURS_SAVED   = [0.0, 0.0, 0.1];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',
