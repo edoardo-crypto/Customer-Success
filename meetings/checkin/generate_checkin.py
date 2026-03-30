@@ -143,26 +143,24 @@ def render_checkin_html(customer_name, issues, releases_data,
 
     # ── Metric card values (from ClickHouse or fallback to placeholder) ──
     if metrics and metrics.get("ai_resolution_rate"):
-        # Sum last 4 weeks (~30 days) for headline values
-        n = min(4, len(metrics["sessions_total"]))
-        tickets_total = sum(metrics["sessions_total"][-n:])
-        tickets_ai = sum(metrics["sessions_ai"][-n:])
-        tickets_human = sum(metrics["sessions_human"][-n:])
-        hours_val = sum(metrics["hours_saved"][-n:])
+        # Latest month's delta = "Last 30 days" headline
+        tickets_total = metrics["sessions_total"][-1]
+        tickets_ai = metrics["sessions_ai"][-1]
+        tickets_human = metrics["sessions_human"][-1]
+        hours_val = metrics["hours_saved"][-1]
 
-        # AI Resolution Rate headline: ratio over last 4 weeks combined
-        latest_rate = tickets_ai / tickets_total if tickets_total > 0 else 0.0
+        # AI Resolution Rate headline: latest month
+        latest_rate = metrics["ai_resolution_rate"][-1]
         ai_rate_display = f"{round(latest_rate * 100)}%"
 
         hours_display = f"{hours_val:.0f}h" if hours_val >= 1 else f"{round(hours_val * 60)}m"
 
-        # Compute % change vs previous week for AI resolution
+        # Compute % change vs previous month for AI resolution
         if len(metrics["ai_resolution_rate"]) >= 2:
-            this_week_rate = metrics["ai_resolution_rate"][-1]
             prev_rate = metrics["ai_resolution_rate"][-2]
             if prev_rate and prev_rate > 0:
-                pct_change = ((this_week_rate - prev_rate) / prev_rate) * 100
-                rate_sub = f"{pct_change:+.0f}% vs prev. week"
+                pct_change = ((latest_rate - prev_rate) / prev_rate) * 100
+                rate_sub = f"{pct_change:+.0f}% vs prev. month"
             else:
                 rate_sub = ""
         else:
@@ -172,8 +170,8 @@ def render_checkin_html(customer_name, issues, releases_data,
         tickets_sub = f"{tickets_ai} by AI · {tickets_human} by humans"
         hours_sub = f"~3 min avg per AI ticket"
 
-        # Weekly chart data
-        weeks_js = json.dumps(metrics["weeks"])
+        # Monthly chart data
+        months_js = json.dumps(metrics["months"])
         total_tickets_js = json.dumps(metrics["sessions_total"])
         ai_resolved_js = json.dumps(metrics["sessions_ai"])
         hours_saved_js = json.dumps(metrics["hours_saved"])
@@ -185,10 +183,10 @@ def render_checkin_html(customer_name, issues, releases_data,
         tickets_sub = ""
         hours_display = "—"
         hours_sub = ""
-        weeks_js = "['W1','W2','W3','W4','W5','W6','W7','W8']"
-        total_tickets_js = "[0,0,0,0,0,0,0,0]"
-        ai_resolved_js = "[0,0,0,0,0,0,0,0]"
-        hours_saved_js = "[0,0,0,0,0,0,0,0]"
+        months_js = "['','','','','','']"
+        total_tickets_js = "[0,0,0,0,0,0]"
+        ai_resolved_js = "[0,0,0,0,0,0]"
+        hours_saved_js = "[0,0,0,0,0,0]"
 
     # Response time card
     if avg_response_time_seconds is not None:
@@ -500,7 +498,7 @@ def render_checkin_html(customer_name, issues, releases_data,
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
         <div class="metric-value" style="color:var(--green);">{tickets_display}</div>
-        <div class="metric-label">Tickets Handled</div>
+        <div class="metric-label">AI Conversations</div>
         <div class="metric-sub">{tickets_sub}</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
@@ -515,7 +513,7 @@ def render_checkin_html(customer_name, issues, releases_data,
 
     <div class="charts-row">
       <div class="card">
-        <div class="card-title">Ticket volume &amp; AI resolution — last 8 weeks</div>
+        <div class="card-title">AI conversations &amp; resolution — last 6 months</div>
         <div class="chart-container">
           <canvas id="chart-tickets" height="220"></canvas>
         </div>
@@ -637,7 +635,7 @@ def render_checkin_html(customer_name, issues, releases_data,
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = {weeks_js};
+const WEEKS = {months_js};
 const TOTAL_TICKETS = {total_tickets_js};
 const AI_RESOLVED   = {ai_resolved_js};
 const HOURS_SAVED   = {hours_saved_js};
