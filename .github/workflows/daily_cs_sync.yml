@@ -6,7 +6,7 @@ name: Daily CS Sync
 # Execution order matters:
 #   1. sync_linear_status.py     — Linear → Notion issue status reconciliation
 #   2. sync_billing_status.py    — Stripe → 💰 Billing Status + date fields
-#   3. sync_mrr_from_stripe.py   — Stripe charges → 💰 MRR (actual last month)
+#   3. sync_mrr_from_sheet.py     — Google Sheet → 💰 MRR (base sub + AI sessions)
 #   4. sync_last_contact.py      — GCal past → 📅 Last Meeting Date 🔒
 #                                   GCal future → 📞 Next Scheduled Check-in
 #   5. sync_contact_reasons.py   — Intercom + GCal combined → 📞 Last Contact Date 🔒 + 💎 Reason
@@ -52,12 +52,11 @@ jobs:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
         run: python3 sync_billing_status.py --create-missing
 
-      # ── 5. sync_mrr_from_stripe.py → 💰 MRR from actual charges
-      - name: Sync MRR from Stripe charges
+      # ── 5. sync_mrr_from_sheet.py → 💰 MRR from Google Sheet (base sub + AI sessions)
+      - name: Sync MRR from Google Sheet
         env:
-          STRIPE_KEY:   ${{ secrets.STRIPE_KEY }}
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-        run: python3 sync_mrr_from_stripe.py
+        run: python3 sync_mrr_from_sheet.py
 
       # ── 6. Write Google OAuth token to file (needed by sync_last_contact.py)
       - name: Write GCal token files
