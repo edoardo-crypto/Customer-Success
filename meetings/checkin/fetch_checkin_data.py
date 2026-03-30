@@ -350,6 +350,9 @@ def _rows_to_metrics(rows):
     # Always include the earliest data point so we don't waste a period
     if anchors[0] != 0:
         anchors.insert(0, 0)
+    # Cap at 5 bi-weekly bars (6 anchor points) — rolling window
+    if len(anchors) > 6:
+        anchors = anchors[-6:]
 
     if len(anchors) < 2:
         return None
