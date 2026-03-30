@@ -677,7 +677,7 @@ new Chart(document.getElementById('chart-tickets'), {{
     layout: {{ padding: {{ top: 10 }} }},
     plugins: {{ legend: {{ position: 'top', labels: {{ font: {{ size: 13 }} }} }} }},
     scales: {{
-      y: {{ stacked: true, beginAtZero: true, grid: {{ display: false }}, ticks: {{ font: {{ size: 12 }} }} }},
+      y: {{ stacked: true, beginAtZero: true, max: Math.ceil(Math.max(...TOTAL_TICKETS) * 1.1), grid: {{ display: false }}, ticks: {{ font: {{ size: 12 }} }} }},
       x: {{ stacked: true, grid: {{ display: false }}, ticks: {{ font: {{ size: 12 }} }} }}
     }}
   }}
