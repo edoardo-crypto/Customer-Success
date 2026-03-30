@@ -279,21 +279,21 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">🤖</div>
-        <div class="metric-value" style="color:var(--blue);">58%</div>
+        <div class="metric-value" style="color:var(--blue);">59%</div>
         <div class="metric-label">AI Resolution Rate</div>
-        <div class="metric-sub">+36% vs prev. week</div>
+        <div class="metric-sub"></div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
-        <div class="metric-value" style="color:var(--green);">165</div>
-        <div class="metric-label">Tickets Handled</div>
-        <div class="metric-sub">96 by AI · 69 by humans</div>
+        <div class="metric-value" style="color:var(--green);">270</div>
+        <div class="metric-label">AI Conversations</div>
+        <div class="metric-sub">159 by AI · 111 by humans</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">⏱️</div>
-        <div class="metric-value" style="color:#A78BFA;">5h</div>
+        <div class="metric-value" style="color:#A78BFA;">8h</div>
         <div class="metric-label">Hours Saved</div>
         <div class="metric-sub">~3 min avg per AI ticket</div>
         <div class="metric-bar" style="background:#A78BFA;"></div>
@@ -302,7 +302,7 @@
 
     <div class="charts-row">
       <div class="card">
-        <div class="card-title">Ticket volume &amp; AI resolution — last 8 weeks</div>
+        <div class="card-title">AI conversations &amp; resolution — last 6 months</div>
         <div class="chart-container">
           <canvas id="chart-tickets" height="220"></canvas>
         </div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["W1\nFeb 16", "W2\nFeb 23", "W3\nMar 2", "W4\nMar 9", "W5\nMar 16", "W6\nMar 23", "W7\nMar 30"];
-const TOTAL_TICKETS = [39, 62, 78, 98, 51, 15, 1];
-const AI_RESOLVED   = [38, 48, 61, 62, 22, 11, 1];
-const HOURS_SAVED   = [1.9, 2.4, 3.0, 3.1, 1.1, 0.6, 0.1];
+const WEEKS = ["Mar"];
+const TOTAL_TICKETS = [270];
+const AI_RESOLVED   = [159];
+const HOURS_SAVED   = [8.0];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',

@@ -279,16 +279,16 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">🤖</div>
-        <div class="metric-value" style="color:var(--blue);">39%</div>
+        <div class="metric-value" style="color:var(--blue);">40%</div>
         <div class="metric-label">AI Resolution Rate</div>
-        <div class="metric-sub">-100% vs prev. week</div>
+        <div class="metric-sub"></div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
-        <div class="metric-value" style="color:var(--green);">130</div>
-        <div class="metric-label">Tickets Handled</div>
-        <div class="metric-sub">51 by AI · 79 by humans</div>
+        <div class="metric-value" style="color:var(--green);">166</div>
+        <div class="metric-label">AI Conversations</div>
+        <div class="metric-sub">67 by AI · 99 by humans</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
       <div class="metric-card">
@@ -302,7 +302,7 @@
 
     <div class="charts-row">
       <div class="card">
-        <div class="card-title">Ticket volume &amp; AI resolution — last 8 weeks</div>
+        <div class="card-title">AI conversations &amp; resolution — last 6 months</div>
         <div class="chart-container">
           <canvas id="chart-tickets" height="220"></canvas>
         </div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["W1\nFeb 16", "W2\nFeb 23", "W3\nMar 2", "W4\nMar 9", "W5\nMar 16", "W6\nMar 23", "W7\nMar 30"];
-const TOTAL_TICKETS = [35, 49, 26, 39, 62, 28, 1];
-const AI_RESOLVED   = [20, 31, 13, 16, 26, 9, 0];
-const HOURS_SAVED   = [1.0, 1.6, 0.7, 0.8, 1.3, 0.5, 0.0];
+const WEEKS = ["Mar"];
+const TOTAL_TICKETS = [166];
+const AI_RESOLVED   = [67];
+const HOURS_SAVED   = [3.4];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',

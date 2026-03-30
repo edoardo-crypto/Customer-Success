@@ -279,16 +279,16 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">🤖</div>
-        <div class="metric-value" style="color:var(--blue);">83%</div>
+        <div class="metric-value" style="color:var(--blue);">80%</div>
         <div class="metric-label">AI Resolution Rate</div>
-        <div class="metric-sub">-17% vs prev. week</div>
+        <div class="metric-sub"></div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
-        <div class="metric-value" style="color:var(--green);">54</div>
-        <div class="metric-label">Tickets Handled</div>
-        <div class="metric-sub">45 by AI · 9 by humans</div>
+        <div class="metric-value" style="color:var(--green);">64</div>
+        <div class="metric-label">AI Conversations</div>
+        <div class="metric-sub">51 by AI · 13 by humans</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
       <div class="metric-card">
@@ -302,7 +302,7 @@
 
     <div class="charts-row">
       <div class="card">
-        <div class="card-title">Ticket volume &amp; AI resolution — last 8 weeks</div>
+        <div class="card-title">AI conversations &amp; resolution — last 6 months</div>
         <div class="chart-container">
           <canvas id="chart-tickets" height="220"></canvas>
         </div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["W1\nFeb 16", "W2\nFeb 23", "W3\nMar 2", "W4\nMar 9", "W5\nMar 16", "W6\nMar 23", "W7\nMar 30"];
-const TOTAL_TICKETS = [2, 9, 6, 15, 11, 25, 3];
-const AI_RESOLVED   = [1, 6, 6, 14, 9, 20, 2];
-const HOURS_SAVED   = [0.1, 0.3, 0.3, 0.7, 0.5, 1.0, 0.1];
+const WEEKS = ["Mar"];
+const TOTAL_TICKETS = [64];
+const AI_RESOLVED   = [51];
+const HOURS_SAVED   = [2.5];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',
