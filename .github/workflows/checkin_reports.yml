@@ -47,7 +47,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./meetings/checkin/site
-          keep_files: false
+          keep_files: true
 
       # ── 5. Update MCT with report URLs ─────────────────────────────────
       - name: Update MCT report URLs
