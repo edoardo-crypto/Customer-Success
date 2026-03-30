@@ -1,0 +1,120 @@
+name: Daily CEO Dashboard
+
+on:
+  schedule:
+    - cron: '0 7 * * *'    # Daily 07:00 UTC = 08:00 CET / 09:00 CEST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests google-api-python-client google-auth
+
+      - name: Write Google credentials
+        env:
+          GOOGLE_TOKEN_JSON: ${{ secrets.GOOGLE_TOKEN_JSON }}
+          GOOGLE_CLIENT_SECRETS: ${{ secrets.GOOGLE_CLIENT_SECRETS }}
+        run: |
+          echo "$GOOGLE_TOKEN_JSON" > token.json
+          echo "$GOOGLE_CLIENT_SECRETS" > client_secrets.json
+
+      - name: Fetch CEO dashboard data
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          STRIPE_KEY: ${{ secrets.STRIPE_KEY }}
+        run: python3 ceo_dashboard/fetch_ceo_dashboard_data.py
+
+      - name: Update Google token secret (if refreshed)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -f token.json ]; then
+            gh secret set GOOGLE_TOKEN_JSON < token.json || true
+          fi
+
+      - name: Generate dashboard
+        run: python3 ceo_dashboard/generate_ceo_dashboard.py
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ceo_dashboard/ceo_dashboard_snapshots.json ceo_dashboard/reports/*.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "CEO Dashboard snapshot — $(date -u +%Y-%m-%d)"
+            git push
+          fi
+
+      - name: Deploy to GitHub Pages
+        run: |
+          # Clone gh-pages into a temp dir, copy the dashboard, push
+          TMPDIR=$(mktemp -d)
+          git clone --branch gh-pages --single-branch "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "$TMPDIR"
+          cp ceo_dashboard/ceo_dashboard.html "$TMPDIR/ceo_dashboard.html"
+          cd "$TMPDIR"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ceo_dashboard.html
+          if git diff --cached --quiet; then
+            echo "No changes to deploy"
+          else
+            git commit -m "Deploy CEO Dashboard — $(date -u +%Y-%m-%d)"
+            git push
+          fi
+          rm -rf "$TMPDIR"
+
+      - name: Upload HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ceo-dashboard-${{ github.run_id }}
+          path: |
+            ceo_dashboard/ceo_dashboard.html
+            ceo_dashboard/reports/*.html
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Notify Slack (success)
+        if: success()
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: |
+          if [ -z "$SLACK_BOT_TOKEN" ]; then echo "No SLACK_BOT_TOKEN — skipping"; exit 0; fi
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          WEEK_LABEL=$(python3 -c "import json; d=json.load(open('ceo_dashboard/ceo_dashboard_data.json')); print(d['week_labels'][-1])")
+          curl -s -X POST "https://slack.com/api/chat.postMessage" \
+            -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"channel\":\"C0AGZDTUND6\",\"text\":\"📊 *CEO Dashboard* for ${WEEK_LABEL} is ready\n<${RUN_URL}|Open report>\"}"
+
+      - name: Notify Slack (failure)
+        if: failure()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_CS }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK" ]; then echo "No SLACK_WEBHOOK_CS — skipping"; exit 0; fi
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -s -X POST "${SLACK_WEBHOOK}" \
+            -H "Content-Type: application/json" \
+            --data-raw "{\"text\":\":x: CEO Dashboard *FAILED* — <${RUN_URL}|View logs>\"}"
