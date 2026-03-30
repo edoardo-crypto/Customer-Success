@@ -281,19 +281,19 @@
         <div class="metric-icon">🤖</div>
         <div class="metric-value" style="color:var(--blue);">72%</div>
         <div class="metric-label">AI Resolution Rate</div>
-        <div class="metric-sub">+0% vs prev. week</div>
+        <div class="metric-sub">+5% vs prev. week</div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
-        <div class="metric-value" style="color:var(--green);">43,257</div>
+        <div class="metric-value" style="color:var(--green);">4,617</div>
         <div class="metric-label">Tickets Handled</div>
-        <div class="metric-sub">31205 by AI · 12052 by humans</div>
+        <div class="metric-sub">3312 by AI · 1305 by humans</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">⏱️</div>
-        <div class="metric-value" style="color:#A78BFA;">1560h</div>
+        <div class="metric-value" style="color:#A78BFA;">166h</div>
         <div class="metric-label">Hours Saved</div>
         <div class="metric-sub">~3 min avg per AI ticket</div>
         <div class="metric-bar" style="background:#A78BFA;"></div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["W1\nFeb 9", "W2\nFeb 16", "W3\nFeb 23", "W4\nMar 2", "W5\nMar 9", "W6\nMar 16", "W7\nMar 23"];
-const TOTAL_TICKETS = [34019, 35626, 37642, 39762, 41218, 42541, 43257];
-const AI_RESOLVED   = [24437, 25637, 27166, 28679, 29727, 30662, 31205];
-const HOURS_SAVED   = [1221.8, 1281.8, 1358.3, 1434.0, 1486.3, 1533.1, 1560.2];
+const WEEKS = ["W1\nFeb 16", "W2\nFeb 23", "W3\nMar 2", "W4\nMar 9", "W5\nMar 16", "W6\nMar 23", "W7\nMar 30"];
+const TOTAL_TICKETS = [1607, 2016, 2120, 1456, 1323, 1675, 163];
+const AI_RESOLVED   = [1200, 1529, 1513, 1048, 935, 1206, 123];
+const HOURS_SAVED   = [60.0, 76.5, 75.7, 52.4, 46.8, 60.3, 6.2];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',

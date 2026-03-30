@@ -279,21 +279,21 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">🤖</div>
-        <div class="metric-value" style="color:var(--blue);">56%</div>
+        <div class="metric-value" style="color:var(--blue);">49%</div>
         <div class="metric-label">AI Resolution Rate</div>
         <div class="metric-sub">+0% vs prev. week</div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
-        <div class="metric-value" style="color:var(--green);">203</div>
+        <div class="metric-value" style="color:var(--green);">53</div>
         <div class="metric-label">Tickets Handled</div>
-        <div class="metric-sub">114 by AI · 89 by humans</div>
+        <div class="metric-sub">26 by AI · 27 by humans</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">⏱️</div>
-        <div class="metric-value" style="color:#A78BFA;">6h</div>
+        <div class="metric-value" style="color:#A78BFA;">1h</div>
         <div class="metric-label">Hours Saved</div>
         <div class="metric-sub">~3 min avg per AI ticket</div>
         <div class="metric-bar" style="background:#A78BFA;"></div>
@@ -350,7 +350,7 @@
   <header class="slide-header">
     <span class="slide-num">02 / 04</span>
     <h1 class="slide-title">What We Have Been Working On — Odisei Music</h1>
-    <span class="slide-subtitle">0 issues · Click row to expand notes</span>
+    <span class="slide-subtitle">1 issues · Click row to expand notes</span>
   </header>
 
   <div class="slide-body">
@@ -367,7 +367,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td colspan="7" style="text-align:center; color:var(--muted); padding:40px;">No issues found for this customer</td></tr>
+          <tr class="issue-row" data-idx="0"><td class="date-cell">Mar 26</td><td class="date-cell"><span style="color:var(--muted);">—</span></td><td><span class="badge badge-red">Open</span></td><td class="issue-title-cell">Lidia Salve - Email address leaked into another customer's conversation</td><td style="text-align:center;"><span class="badge badge-itype-bug">Bug</span></td><td style="text-align:center;"><a href="https://linear.app/konvoai/issue/ENG-830/email-thread-from-one-conversation-leaks-into-another-when-switching" target="_blank" rel="noopener" style="color:var(--blue); text-decoration:none; font-size:16px;" title="Open in Linear">↗</a></td></tr><tr class="notes-row" data-idx="0"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;">No conversation data available - manual review needed. CS Manager noted that a customer's email address was incorrectly …</div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["W1\nFeb 9", "W2\nFeb 16", "W3\nFeb 23", "W4\nMar 2", "W5\nMar 9", "W6\nMar 16", "W7\nMar 23"];
-const TOTAL_TICKETS = [107, 119, 132, 152, 180, 202, 203];
-const AI_RESOLVED   = [66, 73, 78, 90, 98, 113, 114];
-const HOURS_SAVED   = [3.3, 3.6, 3.9, 4.5, 4.9, 5.7, 5.7];
+const WEEKS = ["W1\nFeb 16", "W2\nFeb 23", "W3\nMar 2", "W4\nMar 9", "W5\nMar 16", "W6\nMar 23", "W7\nMar 30"];
+const TOTAL_TICKETS = [12, 13, 20, 28, 22, 1, 2];
+const AI_RESOLVED   = [7, 5, 12, 8, 15, 1, 2];
+const HOURS_SAVED   = [0.3, 0.2, 0.6, 0.4, 0.8, 0.1, 0.1];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',

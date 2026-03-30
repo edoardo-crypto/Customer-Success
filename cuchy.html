@@ -279,21 +279,21 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">🤖</div>
-        <div class="metric-value" style="color:var(--blue);">84%</div>
+        <div class="metric-value" style="color:var(--blue);">60%</div>
         <div class="metric-label">AI Resolution Rate</div>
-        <div class="metric-sub">-0% vs prev. week</div>
+        <div class="metric-sub">+48% vs prev. week</div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
-        <div class="metric-value" style="color:var(--green);">813</div>
+        <div class="metric-value" style="color:var(--green);">62</div>
         <div class="metric-label">Tickets Handled</div>
-        <div class="metric-sub">681 by AI · 132 by humans</div>
+        <div class="metric-sub">37 by AI · 25 by humans</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">⏱️</div>
-        <div class="metric-value" style="color:#A78BFA;">34h</div>
+        <div class="metric-value" style="color:#A78BFA;">2h</div>
         <div class="metric-label">Hours Saved</div>
         <div class="metric-sub">~3 min avg per AI ticket</div>
         <div class="metric-bar" style="background:#A78BFA;"></div>
@@ -321,7 +321,7 @@
         <div class="channel-box">
           <div class="channel-icon whatsapp">💬</div>
           <div class="channel-name">WhatsApp</div>
-          <div class="channel-status">❌</div>
+          <div class="channel-status">✅</div>
         </div>
         <div class="channel-box">
           <div class="channel-icon livechat">🌐</div>
@@ -367,7 +367,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr class="issue-row" data-idx="0"><td class="date-cell">Mar 2</td><td class="date-cell"><span style="color:var(--muted);">—</span></td><td><span class="badge badge-red">Open</span></td><td class="issue-title-cell">Isabel Muñoz Gómez - Discount code not updated</td><td style="text-align:center;"><span class="badge badge-itype-other">Config Issue</span></td><td style="text-align:center;"></td></tr><tr class="notes-row" data-idx="0"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;">No conversation data available - manual review needed.</div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr>
+          <tr class="issue-row" data-idx="0"><td class="date-cell">Mar 2</td><td class="date-cell">Mar 25</td><td><span class="badge badge-green">Resolved</span></td><td class="issue-title-cell">Isabel Muñoz Gómez - Discount code not updated</td><td style="text-align:center;"><span class="badge badge-itype-other">Config Issue</span></td><td style="text-align:center;"></td></tr><tr class="notes-row" data-idx="0"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;">No conversation data available - manual review needed.</div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["W1\nFeb 9", "W2\nFeb 16", "W3\nFeb 23", "W4\nMar 2", "W5\nMar 9", "W6\nMar 16", "W7\nMar 23"];
-const TOTAL_TICKETS = [711, 732, 758, 769, 778, 808, 813];
-const AI_RESOLVED   = [606, 625, 642, 652, 659, 678, 681];
-const HOURS_SAVED   = [30.3, 31.2, 32.1, 32.6, 33.0, 33.9, 34.0];
+const WEEKS = ["W1\nFeb 16", "W2\nFeb 23", "W3\nMar 2", "W4\nMar 9", "W5\nMar 16", "W6\nMar 23", "W7\nMar 30"];
+const TOTAL_TICKETS = [21, 26, 11, 9, 30, 20, 3];
+const AI_RESOLVED   = [19, 17, 10, 7, 19, 9, 2];
+const HOURS_SAVED   = [0.9, 0.8, 0.5, 0.3, 0.9, 0.5, 0.1];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',

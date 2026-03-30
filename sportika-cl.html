@@ -279,21 +279,21 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">🤖</div>
-        <div class="metric-value" style="color:var(--blue);">31%</div>
+        <div class="metric-value" style="color:var(--blue);">50%</div>
         <div class="metric-label">AI Resolution Rate</div>
-        <div class="metric-sub">-0% vs prev. week</div>
+        <div class="metric-sub">+60% vs prev. week</div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
-        <div class="metric-value" style="color:var(--green);">1,177</div>
+        <div class="metric-value" style="color:var(--green);">101</div>
         <div class="metric-label">Tickets Handled</div>
-        <div class="metric-sub">365 by AI · 812 by humans</div>
+        <div class="metric-sub">51 by AI · 50 by humans</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">⏱️</div>
-        <div class="metric-value" style="color:#A78BFA;">18h</div>
+        <div class="metric-value" style="color:#A78BFA;">3h</div>
         <div class="metric-label">Hours Saved</div>
         <div class="metric-sub">~3 min avg per AI ticket</div>
         <div class="metric-bar" style="background:#A78BFA;"></div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["W1\nFeb 9", "W2\nFeb 16", "W3\nFeb 23", "W4\nMar 2", "W5\nMar 9", "W6\nMar 16", "W7\nMar 23"];
-const TOTAL_TICKETS = [1010, 1029, 1067, 1102, 1137, 1162, 1177];
-const AI_RESOLVED   = [275, 289, 312, 332, 347, 361, 365];
-const HOURS_SAVED   = [13.8, 14.4, 15.6, 16.6, 17.4, 18.1, 18.2];
+const WEEKS = ["W1\nFeb 16", "W2\nFeb 23", "W3\nMar 2", "W4\nMar 9", "W5\nMar 16", "W6\nMar 23", "W7\nMar 30"];
+const TOTAL_TICKETS = [19, 38, 35, 35, 25, 36, 5];
+const AI_RESOLVED   = [14, 23, 20, 15, 14, 18, 4];
+const HOURS_SAVED   = [0.7, 1.1, 1.0, 0.8, 0.7, 0.9, 0.2];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',

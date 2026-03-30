@@ -279,21 +279,21 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">🤖</div>
-        <div class="metric-value" style="color:var(--blue);">86%</div>
+        <div class="metric-value" style="color:var(--blue);">79%</div>
         <div class="metric-label">AI Resolution Rate</div>
-        <div class="metric-sub">-0% vs prev. week</div>
+        <div class="metric-sub">-100% vs prev. week</div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
-        <div class="metric-value" style="color:var(--green);">3,602</div>
+        <div class="metric-value" style="color:var(--green);">19</div>
         <div class="metric-label">Tickets Handled</div>
-        <div class="metric-sub">3092 by AI · 510 by humans</div>
+        <div class="metric-sub">15 by AI · 4 by humans</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">⏱️</div>
-        <div class="metric-value" style="color:#A78BFA;">155h</div>
+        <div class="metric-value" style="color:#A78BFA;">42m</div>
         <div class="metric-label">Hours Saved</div>
         <div class="metric-sub">~3 min avg per AI ticket</div>
         <div class="metric-bar" style="background:#A78BFA;"></div>
@@ -350,7 +350,7 @@
   <header class="slide-header">
     <span class="slide-num">02 / 04</span>
     <h1 class="slide-title">What We Have Been Working On — IBG Illice Brands Group</h1>
-    <span class="slide-subtitle">0 issues · Click row to expand notes</span>
+    <span class="slide-subtitle">2 issues · Click row to expand notes</span>
   </header>
 
   <div class="slide-body">
@@ -367,7 +367,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td colspan="7" style="text-align:center; color:var(--muted); padding:40px;">No issues found for this customer</td></tr>
+          <tr class="issue-row" data-idx="0"><td class="date-cell">Mar 25</td><td class="date-cell"><span style="color:var(--muted);">—</span></td><td><span class="badge badge-grey"></span></td><td class="issue-title-cell">AI escalates to human instead of sending contact form → conversation left in OPEN</td><td style="text-align:center;"></td><td style="text-align:center;"></td></tr><tr class="notes-row" data-idx="0"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;"></div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr><tr class="issue-row" data-idx="1"><td class="date-cell">Mar 25</td><td class="date-cell"><span style="color:var(--muted);">—</span></td><td><span class="badge badge-grey"></span></td><td class="issue-title-cell">AI sends contact form correctly but still moves conversation to OPEN </td><td style="text-align:center;"></td><td style="text-align:center;"></td></tr><tr class="notes-row" data-idx="1"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;"></div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["W1\nFeb 9", "W2\nFeb 16", "W3\nFeb 23", "W4\nMar 2", "W5\nMar 9", "W6\nMar 16", "W7\nMar 23"];
-const TOTAL_TICKETS = [3559, 3567, 3578, 3588, 3594, 3598, 3602];
-const AI_RESOLVED   = [3054, 3061, 3072, 3081, 3087, 3091, 3092];
-const HOURS_SAVED   = [152.7, 153.1, 153.6, 154.1, 154.3, 154.6, 154.6];
+const WEEKS = ["W1\nFeb 16", "W2\nFeb 23", "W3\nMar 2", "W4\nMar 9", "W5\nMar 16", "W6\nMar 23", "W7\nMar 30"];
+const TOTAL_TICKETS = [8, 11, 10, 6, 4, 9, 0];
+const AI_RESOLVED   = [7, 11, 9, 6, 4, 5, 0];
+const HOURS_SAVED   = [0.3, 0.6, 0.5, 0.3, 0.2, 0.2, 0.0];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',

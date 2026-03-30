@@ -7,25 +7,18 @@
     "issue_count": 0
   },
   {
-    "slug": "4-patitas",
-    "name": "4 Patitas",
-    "page_id": "302e418f-d8c4-8170-a478-c26ce97cf6e4",
-    "billing_status": "Active",
-    "issue_count": 2
-  },
-  {
     "slug": "ace-and-tate",
     "name": "ACE and Tate",
     "page_id": "311e418f-d8c4-81da-b23a-f7cf5d5dc9fc",
     "billing_status": "Active",
-    "issue_count": 1
+    "issue_count": 2
   },
   {
     "slug": "acuarium-sucs-slu",
     "name": "ACUARIUM SUCS SLU",
     "page_id": "302e418f-d8c4-81a6-acd1-ca284ac5aa1c",
     "billing_status": "Active",
-    "issue_count": 0
+    "issue_count": 1
   },
   {
     "slug": "adaptoheal",
@@ -39,7 +32,7 @@
     "name": "Aguas do Paraño",
     "page_id": "302e418f-d8c4-8151-af35-fc3b0d0562b6",
     "billing_status": "Active",
-    "issue_count": 4
+    "issue_count": 5
   },
   {
     "slug": "alhamas-artesania",
@@ -73,34 +66,20 @@
     "slug": "andres-marin",
     "name": "Andrés Marín",
     "page_id": "302e418f-d8c4-812e-8247-c7b5a75662f6",
-    "billing_status": "Churning",
+    "billing_status": "Active",
     "issue_count": 0
   },
   {
     "slug": "aprilplants",
     "name": "APRILPLANTS",
     "page_id": "302e418f-d8c4-8146-8f4a-e416bdc3b91a",
-    "billing_status": "Active",
+    "billing_status": "Churning",
     "issue_count": 9
   },
   {
     "slug": "area-zero",
     "name": "AREA ZERO",
     "page_id": "302e418f-d8c4-814d-a4eb-ef01153a9a85",
-    "billing_status": "Active",
-    "issue_count": 0
-  },
-  {
-    "slug": "artesta-store-sl",
-    "name": "Artesta Store SL",
-    "page_id": "302e418f-d8c4-81c5-82d9-ce13afe60d68",
-    "billing_status": "Active",
-    "issue_count": 0
-  },
-  {
-    "slug": "asesoria-clientes",
-    "name": "Asesoria Clientes",
-    "page_id": "302e418f-d8c4-8160-81df-e896ac3fd96e",
     "billing_status": "Active",
     "issue_count": 0
   },
@@ -133,18 +112,11 @@
     "issue_count": 0
   },
   {
-    "slug": "bad-habits",
-    "name": "Bad Habits",
-    "page_id": "302e418f-d8c4-81be-9519-cd7de1b51c1b",
-    "billing_status": "Active",
-    "issue_count": 0
-  },
-  {
     "slug": "balbisiana",
     "name": "BALBISIANA",
     "page_id": "302e418f-d8c4-8155-8f25-e59c6d60657a",
     "billing_status": "Active",
-    "issue_count": 0
+    "issue_count": 1
   },
   {
     "slug": "baymo-the-label",
@@ -158,13 +130,6 @@
     "name": "BELLODIMAMMA",
     "page_id": "319e418f-d8c4-810e-bb2f-d1e54e287726",
     "billing_status": "Active",
-    "issue_count": 0
-  },
-  {
-    "slug": "beston",
-    "name": "Beston",
-    "page_id": "302e418f-d8c4-81dd-99f1-fe68a0a70262",
-    "billing_status": "Churning",
     "issue_count": 0
   },
   {
@@ -182,23 +147,37 @@
     "issue_count": 0
   },
   {
+    "slug": "calzados-pablo-slu",
+    "name": "Calzados Pablo SLU",
+    "page_id": "302e418f-d8c4-8172-a433-dd397a6f436c",
+    "billing_status": "Active",
+    "issue_count": 0
+  },
+  {
     "slug": "candypet-sl",
     "name": "CANDYPET SL",
     "page_id": "302e418f-d8c4-81e7-a733-d1d5f9c87273",
     "billing_status": "Active",
-    "issue_count": 4
+    "issue_count": 5
   },
   {
     "slug": "cascalia",
     "name": "Cascalia",
     "page_id": "327e418f-d8c4-81c4-ba64-fd783d8d9bbe",
     "billing_status": "Active",
-    "issue_count": 1
+    "issue_count": 3
   },
   {
     "slug": "cashfana",
     "name": "Cashfana",
     "page_id": "302e418f-d8c4-811f-bd12-ee092ca14203",
+    "billing_status": "Active",
+    "issue_count": 0
+  },
+  {
+    "slug": "catalan-entrepreneurship-sl",
+    "name": "Catalan Entrepreneurship SL",
+    "page_id": "332e418f-d8c4-814a-a305-e498b2b06cdc",
     "billing_status": "Active",
     "issue_count": 0
   },
@@ -263,7 +242,7 @@
     "name": "Crea Decora Recicla SL",
     "page_id": "302e418f-d8c4-817e-81c4-c88b4eeb9027",
     "billing_status": "Active",
-    "issue_count": 7
+    "issue_count": 8
   },
   {
     "slug": "cru-e-nu",
@@ -273,6 +252,13 @@
     "issue_count": 3
   },
   {
+    "slug": "ct-inteligencia",
+    "name": "CT Inteligencia",
+    "page_id": "332e418f-d8c4-8195-81a9-defaf6506ad5",
+    "billing_status": "Active",
+    "issue_count": 0
+  },
+  {
     "slug": "cuchy",
     "name": "CUCHY",
     "page_id": "302e418f-d8c4-8131-9206-eaf5ded88f75",
@@ -280,11 +266,18 @@
     "issue_count": 1
   },
   {
+    "slug": "curviva-brands-ltd",
+    "name": "Curviva Brands Ltd.",
+    "page_id": "332e418f-d8c4-8161-b6ae-e9c4980c9e09",
+    "billing_status": "Active",
+    "issue_count": 0
+  },
+  {
     "slug": "daedo-international",
     "name": "Daedo International",
     "page_id": "302e418f-d8c4-813c-bfa2-c5c3fe929958",
     "billing_status": "Active",
-    "issue_count": 0
+    "issue_count": 1
   },
   {
     "slug": "decoflorimperial-sl",
@@ -305,7 +298,7 @@
     "name": "Doña Tomasa",
     "page_id": "302e418f-d8c4-812e-a101-c8c602396898",
     "billing_status": "Active",
-    "issue_count": 7
+    "issue_count": 8
   },
   {
     "slug": "duke-trading-s-l",
@@ -327,6 +320,13 @@
     "page_id": "302e418f-d8c4-81ac-b456-dfbb9324156a",
     "billing_status": "Active",
     "issue_count": 1
+  },
+  {
+    "slug": "emlife-biotics-sl",
+    "name": "EMLIFE BIOTICS, SL",
+    "page_id": "302e418f-d8c4-81b4-834a-d496ea054aab",
+    "billing_status": "Churning",
+    "issue_count": 3
   },
   {
     "slug": "endor-technologies",
@@ -362,13 +362,6 @@
     "page_id": "302e418f-d8c4-8151-a11a-eca7a143e5d9",
     "billing_status": "Active",
     "issue_count": 0
-  },
-  {
-    "slug": "femmeup",
-    "name": "FemmeUp",
-    "page_id": "30ce418f-d8c4-818e-95b5-cb86333b500c",
-    "billing_status": "Active",
-    "issue_count": 1
   },
   {
     "slug": "ferent",
@@ -434,6 +427,13 @@
     "issue_count": 0
   },
   {
+    "slug": "futbolkit",
+    "name": "Futbolkit",
+    "page_id": "302e418f-d8c4-8121-9028-d749444904c5",
+    "billing_status": "Active",
+    "issue_count": 0
+  },
+  {
     "slug": "futboltek-technology-for-training-sl",
     "name": "Futboltek Technology for training SL",
     "page_id": "302e418f-d8c4-8102-ae7b-fe7583cc060d",
@@ -445,12 +445,19 @@
     "name": "Gabis",
     "page_id": "302e418f-d8c4-81da-9c69-f39c53b3c84b",
     "billing_status": "Active",
-    "issue_count": 2
+    "issue_count": 3
   },
   {
     "slug": "genuins-sales-s-l",
     "name": "Genuins Sales S.L",
     "page_id": "31ee418f-d8c4-819e-883f-c91694e8b2b4",
+    "billing_status": "Active",
+    "issue_count": 0
+  },
+  {
+    "slug": "gfa-group-sl",
+    "name": "Gfa Group SL",
+    "page_id": "302e418f-d8c4-8113-b43b-c529e4573bd5",
     "billing_status": "Active",
     "issue_count": 0
   },
@@ -462,18 +469,25 @@
     "issue_count": 3
   },
   {
+    "slug": "gonzalo-balcells",
+    "name": "Gonzalo Balcells",
+    "page_id": "332e418f-d8c4-8150-9daa-fd69f576b93c",
+    "billing_status": "Active",
+    "issue_count": 0
+  },
+  {
     "slug": "goodbye-rita-s-l",
     "name": "Goodbye, Rita S.L",
     "page_id": "302e418f-d8c4-81e0-b552-dff738140f52",
     "billing_status": "Active",
-    "issue_count": 3
+    "issue_count": 4
   },
   {
     "slug": "grippadel-agency-have-account-for-free",
     "name": "Grippadel (Agency, have account for free)",
     "page_id": "313e418f-d8c4-801a-9cc6-c86a2e84db98",
     "billing_status": "Active",
-    "issue_count": 4
+    "issue_count": 5
   },
   {
     "slug": "health-nutrition-lab",
@@ -515,7 +529,7 @@
     "name": "IBG Illice Brands Group",
     "page_id": "302e418f-d8c4-812f-836a-e673eb5fee38",
     "billing_status": "Active",
-    "issue_count": 0
+    "issue_count": 2
   },
   {
     "slug": "idol-version-s-l",
@@ -525,9 +539,23 @@
     "issue_count": 1
   },
   {
+    "slug": "iker-cruz-oraa",
+    "name": "Iker Cruz Oraá",
+    "page_id": "332e418f-d8c4-814a-91b4-f8703ceec1ba",
+    "billing_status": "Active",
+    "issue_count": 0
+  },
+  {
     "slug": "il-baco-da-seta-slu",
     "name": "il baco da seta slu",
     "page_id": "302e418f-d8c4-816a-9c57-c67450aee332",
+    "billing_status": "Active",
+    "issue_count": 0
+  },
+  {
+    "slug": "indian-ocean-consulting-s-l",
+    "name": "Indian Ocean Consulting, S.L.",
+    "page_id": "332e418f-d8c4-81fe-9c19-d96b72678c90",
     "billing_status": "Active",
     "issue_count": 0
   },
@@ -546,6 +574,13 @@
     "issue_count": 0
   },
   {
+    "slug": "konvogmbh",
+    "name": "KonvoGmbH",
+    "page_id": "332e418f-d8c4-8195-93f6-c8e859602b97",
+    "billing_status": "Churning",
+    "issue_count": 0
+  },
+  {
     "slug": "koopey",
     "name": "Koopey",
     "page_id": "302e418f-d8c4-8125-a962-ec45a9fad911",
@@ -557,14 +592,7 @@
     "name": "La Caja Saludable",
     "page_id": "302e418f-d8c4-81f5-9027-e1d74d8c4578",
     "billing_status": "Active",
-    "issue_count": 2
-  },
-  {
-    "slug": "la-valenciana-1950",
-    "name": "La Valenciana 1950",
-    "page_id": "302e418f-d8c4-810f-805b-effcd17344b3",
-    "billing_status": "Active",
-    "issue_count": 1
+    "issue_count": 3
   },
   {
     "slug": "laazo-80",
@@ -579,6 +607,13 @@
     "page_id": "302e418f-d8c4-816d-869e-ea725dd8da6a",
     "billing_status": "Active",
     "issue_count": 1
+  },
+  {
+    "slug": "labienhecha-estudio-sl",
+    "name": "Labienhecha Estudio SL",
+    "page_id": "302e418f-d8c4-81bf-89ad-ed33604b5dbe",
+    "billing_status": "Active",
+    "issue_count": 0
   },
   {
     "slug": "legend-lifestyle-s-l",
@@ -616,9 +651,9 @@
     "issue_count": 0
   },
   {
-    "slug": "lumara-shop",
-    "name": "Lumara Shop",
-    "page_id": "302e418f-d8c4-8166-9dc3-f823981d775f",
+    "slug": "logiservice-europe",
+    "name": "LogiService Europe",
+    "page_id": "332e418f-d8c4-8110-9270-c75ca232c8b8",
     "billing_status": "Active",
     "issue_count": 0
   },
@@ -627,7 +662,14 @@
     "name": "Madequa",
     "page_id": "302e418f-d8c4-813f-bad5-ccd69ae11abd",
     "billing_status": "Active",
-    "issue_count": 17
+    "issue_count": 20
+  },
+  {
+    "slug": "mahogany-enterprises-s-l",
+    "name": "Mahogany Enterprises S.L.",
+    "page_id": "30ce418f-d8c4-81c6-a2f7-c3436e51c652",
+    "billing_status": "Active",
+    "issue_count": 0
   },
   {
     "slug": "maquis-co",
@@ -641,7 +683,14 @@
     "name": "Matcha Jeans",
     "page_id": "302e418f-d8c4-816c-a792-ca964e8a9a97",
     "billing_status": "Active",
-    "issue_count": 5
+    "issue_count": 7
+  },
+  {
+    "slug": "mercajeans-group-s-l",
+    "name": "MERCAJEANS GROUP, S. L.",
+    "page_id": "302e418f-d8c4-8193-9a2e-d633f6bdf655",
+    "billing_status": "Churning",
+    "issue_count": 0
   },
   {
     "slug": "mimikoko-jewelry",
@@ -655,6 +704,13 @@
     "name": "MindTravelerBcn",
     "page_id": "302e418f-d8c4-81ba-ad08-d53801bb2a62",
     "billing_status": "Active",
+    "issue_count": 0
+  },
+  {
+    "slug": "mixen-beauty-technologies-s-l",
+    "name": "MIXEN BEAUTY TECHNOLOGIES, S.L.",
+    "page_id": "302e418f-d8c4-8161-b1e4-f0ba51fd720e",
+    "billing_status": "Churning",
     "issue_count": 0
   },
   {
@@ -672,18 +728,25 @@
     "issue_count": 0
   },
   {
-    "slug": "mood-collection-sa",
-    "name": "Mood Collection SA",
-    "page_id": "302e418f-d8c4-81af-bc7f-f56477dae21e",
+    "slug": "mr-wonderful-comunication-s-l",
+    "name": "Mr. Wonderful Comunication S.L",
+    "page_id": "332e418f-d8c4-81f5-a9af-fa16cecd9492",
     "billing_status": "Active",
-    "issue_count": 4
+    "issue_count": 0
+  },
+  {
+    "slug": "mr-wonderful-comunication-sl",
+    "name": "Mr. Wonderful Comunication SL",
+    "page_id": "332e418f-d8c4-81bb-8339-e4aba679d4da",
+    "billing_status": "Active",
+    "issue_count": 0
   },
   {
     "slug": "mu-brand",
     "name": "MU Brand",
     "page_id": "302e418f-d8c4-810b-b8f7-dde0fab72148",
     "billing_status": "Active",
-    "issue_count": 7
+    "issue_count": 8
   },
   {
     "slug": "mublio-b-v",
@@ -697,21 +760,28 @@
     "name": "Muk Barcelona",
     "page_id": "302e418f-d8c4-814e-9bdb-c9c72fabaca5",
     "billing_status": "Active",
-    "issue_count": 2
+    "issue_count": 4
   },
   {
     "slug": "mun-ferments-sl",
     "name": "MUN FERMENTS SL",
     "page_id": "302e418f-d8c4-815f-8da9-d6dcc7ad4b4b",
     "billing_status": "Active",
-    "issue_count": 25
+    "issue_count": 26
+  },
+  {
+    "slug": "muris-brand-sl",
+    "name": "MURIS BRAND SL",
+    "page_id": "332e418f-d8c4-8140-85fc-fe97a54b1a50",
+    "billing_status": "Active",
+    "issue_count": 0
   },
   {
     "slug": "natana-cosmetics-sl",
     "name": "NATANA COSMETICS SL",
     "page_id": "302e418f-d8c4-814d-ac3d-c53c425bcf3c",
     "billing_status": "Active",
-    "issue_count": 1
+    "issue_count": 2
   },
   {
     "slug": "nationaal-oogcentrum",
@@ -725,7 +795,7 @@
     "name": "NATURAL SMART BEAUTY SL",
     "page_id": "302e418f-d8c4-81f8-846e-fb678b88e9c0",
     "billing_status": "Active",
-    "issue_count": 1
+    "issue_count": 3
   },
   {
     "slug": "naive",
@@ -767,14 +837,14 @@
     "name": "Odisei Music",
     "page_id": "302e418f-d8c4-8110-8845-d18ce4e9640f",
     "billing_status": "Active",
-    "issue_count": 0
+    "issue_count": 1
   },
   {
     "slug": "odorem-mediterranea-sl",
     "name": "ODOREM MEDITERRANEA, SL",
     "page_id": "302e418f-d8c4-81ba-9f32-e25b092e3c94",
     "billing_status": "Active",
-    "issue_count": 6
+    "issue_count": 9
   },
   {
     "slug": "off-tv-media-group-sl",
@@ -802,7 +872,7 @@
     "name": "Orvis UK",
     "page_id": "302e418f-d8c4-81c7-a433-de4683c77cc8",
     "billing_status": "Active",
-    "issue_count": 11
+    "issue_count": 12
   },
   {
     "slug": "otso-sport",
@@ -812,9 +882,9 @@
     "issue_count": 0
   },
   {
-    "slug": "parfums-nox",
-    "name": "PARFUMS NOX",
-    "page_id": "302e418f-d8c4-8121-8465-e935fd71da95",
+    "slug": "paris64-brand-s-l",
+    "name": "PARIS64 BRAND S.L",
+    "page_id": "302e418f-d8c4-815d-abdc-c4eee5eaea8e",
     "billing_status": "Active",
     "issue_count": 0
   },
@@ -837,7 +907,7 @@
     "name": "Pilar Martín",
     "page_id": "302e418f-d8c4-817f-83e0-f6ee643a9e62",
     "billing_status": "Active",
-    "issue_count": 0
+    "issue_count": 1
   },
   {
     "slug": "platadepalo",
@@ -845,13 +915,6 @@
     "page_id": "302e418f-d8c4-8127-9745-c97f3bf54d68",
     "billing_status": "Active",
     "issue_count": 1
-  },
-  {
-    "slug": "platanomelon-2",
-    "name": "Platanomelon",
-    "page_id": "302e418f-d8c4-81f5-99da-c17bb9464703",
-    "billing_status": "Active",
-    "issue_count": 3
   },
   {
     "slug": "platanomelon",
@@ -873,13 +936,6 @@
     "page_id": "302e418f-d8c4-8129-bdd9-ec37eb837f58",
     "billing_status": "Active",
     "issue_count": 1
-  },
-  {
-    "slug": "pureskincare",
-    "name": "PureSkincare",
-    "page_id": "302e418f-d8c4-8194-946f-e537a0e07104",
-    "billing_status": "Active",
-    "issue_count": 7
   },
   {
     "slug": "pes-de-cereja-lda",
@@ -917,9 +973,23 @@
     "issue_count": 0
   },
   {
+    "slug": "roca-mood-studio-sl",
+    "name": "ROCA MOOD STUDIO SL",
+    "page_id": "31ee418f-d8c4-818a-a50f-ebdd9e930aaf",
+    "billing_status": "Active",
+    "issue_count": 0
+  },
+  {
     "slug": "rocacorba-girona-sl",
     "name": "Rocacorba Girona SL",
     "page_id": "302e418f-d8c4-81e2-a6e9-f5b57fd5e8c6",
+    "billing_status": "Active",
+    "issue_count": 0
+  },
+  {
+    "slug": "roleclothing-sl",
+    "name": "ROLECLOTHING SL",
+    "page_id": "30ce418f-d8c4-81ed-9bf0-d5d3b098a143",
     "billing_status": "Active",
     "issue_count": 0
   },
@@ -987,24 +1057,24 @@
     "issue_count": 0
   },
   {
-    "slug": "siwon",
-    "name": "Siwon",
-    "page_id": "302e418f-d8c4-81b1-9e2f-dd83438447e2",
-    "billing_status": "Active",
-    "issue_count": 2
-  },
-  {
     "slug": "small-beer",
     "name": "Small Beer",
     "page_id": "302e418f-d8c4-81ac-8de2-cafc6d737a1c",
-    "billing_status": "Active",
-    "issue_count": 0
+    "billing_status": "Churning",
+    "issue_count": 1
   },
   {
     "slug": "snap360-app",
     "name": "Snap360 App",
     "page_id": "302e418f-d8c4-81ad-820b-cbda1b2f2af2",
     "billing_status": "Active",
+    "issue_count": 1
+  },
+  {
+    "slug": "solakon-gmbh",
+    "name": "Solakon GmbH",
+    "page_id": "332e418f-d8c4-8137-9777-f59ca170773e",
+    "billing_status": "Churning",
     "issue_count": 0
   },
   {
@@ -1029,13 +1099,6 @@
     "issue_count": 0
   },
   {
-    "slug": "telmos-atlantic-s-l",
-    "name": "TELMOS ATLANTIC, S.L.",
-    "page_id": "321e418f-d8c4-81c5-ad83-fe6893477d39",
-    "billing_status": "Active",
-    "issue_count": 1
-  },
-  {
     "slug": "textiles-martinez-curiel",
     "name": "Textiles Martinez Curiel",
     "page_id": "302e418f-d8c4-81fc-bcde-e57dda67f714",
@@ -1043,18 +1106,11 @@
     "issue_count": 0
   },
   {
-    "slug": "the-balance-phone-sl",
-    "name": "The Balance Phone SL",
-    "page_id": "302e418f-d8c4-81d5-bc79-c9297a651a8a",
-    "billing_status": "Active",
-    "issue_count": 2
-  },
-  {
     "slug": "the-cool-bottles-company-sl",
     "name": "The Cool Bottles Company SL",
     "page_id": "311e418f-d8c4-81b4-a675-f27f13f8fee2",
     "billing_status": "Active",
-    "issue_count": 0
+    "issue_count": 3
   },
   {
     "slug": "the-salad-code-company",
@@ -1096,7 +1152,7 @@
     "name": "UAF ATID SL",
     "page_id": "302e418f-d8c4-818f-aef1-d859383a778f",
     "billing_status": "Active",
-    "issue_count": 3
+    "issue_count": 4
   },
   {
     "slug": "unisa-shoes-accessories",
@@ -1124,21 +1180,14 @@
     "name": "VALMAS GROUP LIMITED",
     "page_id": "311e418f-d8c4-81b8-9019-c6e97111b120",
     "billing_status": "Active",
-    "issue_count": 3
+    "issue_count": 4
   },
   {
     "slug": "valquer-laboratorios-s-l-u",
     "name": "Valquer Laboratorios S.L.U.",
     "page_id": "302e418f-d8c4-815b-9e8e-e7303b0bc8ec",
     "billing_status": "Active",
-    "issue_count": 8
-  },
-  {
-    "slug": "vinkova-leotards",
-    "name": "Vinkova Leotards",
-    "page_id": "312e418f-d8c4-8176-a260-c81c5f34e0a4",
-    "billing_status": "Active",
-    "issue_count": 0
+    "issue_count": 9
   },
   {
     "slug": "vit2go",
@@ -1146,13 +1195,6 @@
     "page_id": "302e418f-d8c4-81d7-9c29-ffbe54039a12",
     "billing_status": "Active",
     "issue_count": 0
-  },
-  {
-    "slug": "vituron-s-l",
-    "name": "VITURON S.L",
-    "page_id": "302e418f-d8c4-81c0-b083-e33170f037e8",
-    "billing_status": "Active",
-    "issue_count": 1
   },
   {
     "slug": "weritwerit-sl",
@@ -1187,6 +1229,6 @@
     "name": "ZZEN Labs",
     "page_id": "302e418f-d8c4-81c2-9bad-e310069066d7",
     "billing_status": "Active",
-    "issue_count": 5
+    "issue_count": 7
   }
 ]

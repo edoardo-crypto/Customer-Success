@@ -279,21 +279,21 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">🤖</div>
-        <div class="metric-value" style="color:var(--blue);">69%</div>
+        <div class="metric-value" style="color:var(--blue);">74%</div>
         <div class="metric-label">AI Resolution Rate</div>
-        <div class="metric-sub">-2% vs prev. week</div>
+        <div class="metric-sub">-100% vs prev. week</div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
-        <div class="metric-value" style="color:var(--green);">121</div>
+        <div class="metric-value" style="color:var(--green);">53</div>
         <div class="metric-label">Tickets Handled</div>
-        <div class="metric-sub">84 by AI · 37 by humans</div>
+        <div class="metric-sub">39 by AI · 14 by humans</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">⏱️</div>
-        <div class="metric-value" style="color:#A78BFA;">4h</div>
+        <div class="metric-value" style="color:#A78BFA;">2h</div>
         <div class="metric-label">Hours Saved</div>
         <div class="metric-sub">~3 min avg per AI ticket</div>
         <div class="metric-bar" style="background:#A78BFA;"></div>
@@ -326,12 +326,12 @@
         <div class="channel-box">
           <div class="channel-icon livechat">🌐</div>
           <div class="channel-name">Live Chat</div>
-          <div class="channel-status">❌</div>
+          <div class="channel-status">✅</div>
         </div>
         <div class="channel-box">
           <div class="channel-icon email">📧</div>
           <div class="channel-name">Email</div>
-          <div class="channel-status">❌</div>
+          <div class="channel-status">✅</div>
         </div>
         <div class="channel-box">
           <div class="channel-icon instagram">📸</div>
@@ -350,7 +350,7 @@
   <header class="slide-header">
     <span class="slide-num">02 / 04</span>
     <h1 class="slide-title">What We Have Been Working On — Small Beer</h1>
-    <span class="slide-subtitle">0 issues · Click row to expand notes</span>
+    <span class="slide-subtitle">1 issues · Click row to expand notes</span>
   </header>
 
   <div class="slide-body">
@@ -367,7 +367,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td colspan="7" style="text-align:center; color:var(--muted); padding:40px;">No issues found for this customer</td></tr>
+          <tr class="issue-row" data-idx="0"><td class="date-cell">Mar 26</td><td class="date-cell"><span style="color:var(--muted);">—</span></td><td><span class="badge badge-red">Open</span></td><td class="issue-title-cell">Small Beer - AI repeatedly asks for confirmation before human transfer</td><td style="text-align:center;"><span class="badge badge-itype-bug">Bug</span></td><td style="text-align:center;"><a href="https://linear.app/konvoai/issue/ENG-829/ai-sends-handoff-confirmation-message-twice-before-human-transfer" target="_blank" rel="noopener" style="color:var(--blue); text-decoration:none; font-size:16px;" title="Open in Linear">↗</a></td></tr><tr class="notes-row" data-idx="0"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;">No conversation data available - manual review needed. The CS manager reported that the AI asked twice for client confir…</div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["W1\nFeb 9", "W2\nFeb 16", "W3\nFeb 23", "W4\nMar 2", "W5\nMar 9", "W6\nMar 16", "W7\nMar 23"];
-const TOTAL_TICKETS = [17, 39, 57, 76, 92, 112, 121];
-const AI_RESOLVED   = [13, 28, 40, 49, 61, 79, 84];
-const HOURS_SAVED   = [0.7, 1.4, 2.0, 2.5, 3.0, 4.0, 4.2];
+const WEEKS = ["W1\nFeb 16", "W2\nFeb 23", "W3\nMar 2", "W4\nMar 9", "W5\nMar 16", "W6\nMar 23", "W7\nMar 30"];
+const TOTAL_TICKETS = [22, 18, 19, 16, 20, 17, 0];
+const AI_RESOLVED   = [15, 12, 9, 12, 18, 9, 0];
+const HOURS_SAVED   = [0.8, 0.6, 0.5, 0.6, 0.9, 0.5, 0.0];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',

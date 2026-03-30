@@ -279,21 +279,21 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">🤖</div>
-        <div class="metric-value" style="color:var(--blue);">69%</div>
+        <div class="metric-value" style="color:var(--blue);">66%</div>
         <div class="metric-label">AI Resolution Rate</div>
-        <div class="metric-sub">-0% vs prev. week</div>
+        <div class="metric-sub">+21% vs prev. week</div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
-        <div class="metric-value" style="color:var(--green);">4,542</div>
+        <div class="metric-value" style="color:var(--green);">118</div>
         <div class="metric-label">Tickets Handled</div>
-        <div class="metric-sub">3120 by AI · 1422 by humans</div>
+        <div class="metric-sub">78 by AI · 40 by humans</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">⏱️</div>
-        <div class="metric-value" style="color:#A78BFA;">156h</div>
+        <div class="metric-value" style="color:#A78BFA;">4h</div>
         <div class="metric-label">Hours Saved</div>
         <div class="metric-sub">~3 min avg per AI ticket</div>
         <div class="metric-bar" style="background:#A78BFA;"></div>
@@ -367,7 +367,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr class="issue-row" data-idx="0"><td class="date-cell">Mar 24</td><td class="date-cell"><span style="color:var(--muted);">—</span></td><td><span class="badge badge-red">Open</span></td><td class="issue-title-cell">Wild Rain Cosmetics - Broadcast failed due to oversized image attachment</td><td style="text-align:center;"><span class="badge badge-itype-other">Config Issue</span></td><td style="text-align:center;"></td></tr><tr class="notes-row" data-idx="0"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;">Customer attempted to send a broadcast message but it failed to send because the attached image file was too large. No c…</div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr>
+          <tr class="issue-row" data-idx="0"><td class="date-cell">Mar 24</td><td class="date-cell">Mar 25</td><td><span class="badge badge-green">Resolved</span></td><td class="issue-title-cell">Wild Rain Cosmetics - Broadcast failed due to oversized image attachment</td><td style="text-align:center;"><span class="badge badge-itype-other">Config Issue</span></td><td style="text-align:center;"></td></tr><tr class="notes-row" data-idx="0"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;">No conversation data available - manual review needed.</div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["W1\nFeb 9", "W2\nFeb 16", "W3\nFeb 23", "W4\nMar 2", "W5\nMar 9", "W6\nMar 16", "W7\nMar 23"];
-const TOTAL_TICKETS = [4356, 4416, 4439, 4471, 4494, 4530, 4542];
-const AI_RESOLVED   = [2993, 3037, 3052, 3072, 3084, 3113, 3120];
-const HOURS_SAVED   = [149.7, 151.8, 152.6, 153.6, 154.2, 155.7, 156.0];
+const WEEKS = ["W1\nFeb 16", "W2\nFeb 23", "W3\nMar 2", "W4\nMar 9", "W5\nMar 16", "W6\nMar 23", "W7\nMar 30"];
+const TOTAL_TICKETS = [60, 23, 32, 23, 36, 55, 4];
+const AI_RESOLVED   = [44, 15, 20, 12, 29, 34, 3];
+const HOURS_SAVED   = [2.2, 0.8, 1.0, 0.6, 1.4, 1.7, 0.1];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',

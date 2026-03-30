@@ -279,16 +279,16 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">🤖</div>
-        <div class="metric-value" style="color:var(--blue);">37%</div>
+        <div class="metric-value" style="color:var(--blue);">33%</div>
         <div class="metric-label">AI Resolution Rate</div>
-        <div class="metric-sub">+64% vs prev. week</div>
+        <div class="metric-sub">+37% vs prev. week</div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
-        <div class="metric-value" style="color:var(--green);">144</div>
+        <div class="metric-value" style="color:var(--green);">171</div>
         <div class="metric-label">Tickets Handled</div>
-        <div class="metric-sub">53 by AI · 91 by humans</div>
+        <div class="metric-sub">56 by AI · 115 by humans</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
       <div class="metric-card">
@@ -321,7 +321,7 @@
         <div class="channel-box">
           <div class="channel-icon whatsapp">💬</div>
           <div class="channel-name">WhatsApp</div>
-          <div class="channel-status">❌</div>
+          <div class="channel-status">✅</div>
         </div>
         <div class="channel-box">
           <div class="channel-icon livechat">🌐</div>
@@ -331,7 +331,7 @@
         <div class="channel-box">
           <div class="channel-icon email">📧</div>
           <div class="channel-name">Email</div>
-          <div class="channel-status">❌</div>
+          <div class="channel-status">✅</div>
         </div>
         <div class="channel-box">
           <div class="channel-icon instagram">📸</div>
@@ -350,7 +350,7 @@
   <header class="slide-header">
     <span class="slide-num">02 / 04</span>
     <h1 class="slide-title">What We Have Been Working On — The Cool Bottles Company SL</h1>
-    <span class="slide-subtitle">0 issues · Click row to expand notes</span>
+    <span class="slide-subtitle">3 issues · Click row to expand notes</span>
   </header>
 
   <div class="slide-body">
@@ -367,7 +367,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td colspan="7" style="text-align:center; color:var(--muted); padding:40px;">No issues found for this customer</td></tr>
+          <tr class="issue-row" data-idx="0"><td class="date-cell">Mar 26</td><td class="date-cell"><span style="color:var(--muted);">—</span></td><td><span class="badge badge-red">Open</span></td><td class="issue-title-cell">AI added the custom answer reference(dec0bdb8-57e4-4b2f-9446-ef8610ac54bc)  inside of the message it send to the client </td><td style="text-align:center;"><span class="badge badge-itype-bug">Bug</span></td><td style="text-align:center;"><a href="https://linear.app/konvoai/issue/ENG-828/fix-ai-including-internal-custom-answer-reference-id-in-customer" target="_blank" rel="noopener" style="color:var(--blue); text-decoration:none; font-size:16px;" title="Open in Linear">↗</a></td></tr><tr class="notes-row" data-idx="0"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;"></div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr><tr class="issue-row" data-idx="1"><td class="date-cell">Mar 26</td><td class="date-cell"><span style="color:var(--muted);">—</span></td><td><span class="badge badge-red">Open</span></td><td class="issue-title-cell">AI responds to old emails when Outlook email status is toggled from unread to read</td><td style="text-align:center;"><span class="badge badge-itype-bug">Bug</span></td><td style="text-align:center;"><a href="https://linear.app/konvoai/issue/ENG-827/fix-ai-re-responding-to-old-emails-when-outlook-readunread-status-is" target="_blank" rel="noopener" style="color:var(--blue); text-decoration:none; font-size:16px;" title="Open in Linear">↗</a></td></tr><tr class="notes-row" data-idx="1"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;"></div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr><tr class="issue-row" data-idx="2"><td class="date-cell">Mar 26</td><td class="date-cell"><span style="color:var(--muted);">—</span></td><td><span class="badge badge-grey"></span></td><td class="issue-title-cell"></td><td style="text-align:center;"></td><td style="text-align:center;"></td></tr><tr class="notes-row" data-idx="2"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;"></div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["W1\nFeb 23", "W2\nMar 2", "W3\nMar 9", "W4\nMar 16", "W5\nMar 23"];
-const TOTAL_TICKETS = [0, 0, 20, 49, 144];
-const AI_RESOLVED   = [0, 0, 5, 11, 53];
-const HOURS_SAVED   = [0.0, 0.0, 0.2, 0.6, 2.6];
+const WEEKS = ["W1\nMar 2", "W2\nMar 9", "W3\nMar 16", "W4\nMar 23", "W5\nMar 30"];
+const TOTAL_TICKETS = [0, 20, 29, 118, 4];
+const AI_RESOLVED   = [0, 5, 6, 43, 2];
+const HOURS_SAVED   = [0.0, 0.2, 0.3, 2.1, 0.1];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',

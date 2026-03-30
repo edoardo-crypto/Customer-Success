@@ -279,21 +279,21 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">🤖</div>
-        <div class="metric-value" style="color:var(--blue);">25%</div>
+        <div class="metric-value" style="color:var(--blue);">0%</div>
         <div class="metric-label">AI Resolution Rate</div>
-        <div class="metric-sub">+0% vs prev. week</div>
+        <div class="metric-sub"></div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
-        <div class="metric-value" style="color:var(--green);">4</div>
+        <div class="metric-value" style="color:var(--green);">0</div>
         <div class="metric-label">Tickets Handled</div>
-        <div class="metric-sub">1 by AI · 3 by humans</div>
+        <div class="metric-sub">0 by AI · 0 by humans</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">⏱️</div>
-        <div class="metric-value" style="color:#A78BFA;">6m</div>
+        <div class="metric-value" style="color:#A78BFA;">0m</div>
         <div class="metric-label">Hours Saved</div>
         <div class="metric-sub">~3 min avg per AI ticket</div>
         <div class="metric-bar" style="background:#A78BFA;"></div>
@@ -350,7 +350,7 @@
   <header class="slide-header">
     <span class="slide-num">02 / 04</span>
     <h1 class="slide-title">What We Have Been Working On — NATURAL SMART BEAUTY SL</h1>
-    <span class="slide-subtitle">1 issues · Click row to expand notes</span>
+    <span class="slide-subtitle">3 issues · Click row to expand notes</span>
   </header>
 
   <div class="slide-body">
@@ -367,7 +367,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr class="issue-row" data-idx="0"><td class="date-cell">Feb 19</td><td class="date-cell"><span style="color:var(--muted);">—</span></td><td><span class="badge badge-red">Open</span></td><td class="issue-title-cell">Lucía Mendoza - Low product value, inbox-only usage, needs AI activation</td><td style="text-align:center;"><span class="badge badge-itype-other">Config Issue</span></td><td style="text-align:center;"></td></tr><tr class="notes-row" data-idx="0"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;">Customer is not seeing value in Konvo as they are only using the inbox feature and have not adopted the AI assistant cap…</div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr>
+          <tr class="issue-row" data-idx="0"><td class="date-cell">Mar 25</td><td class="date-cell"><span style="color:var(--muted);">—</span></td><td><span class="badge badge-yellow">In Progress</span></td><td class="issue-title-cell">Whenever you have a conversation in the playground for it to create a conversation in Testing</td><td style="text-align:center;"><span class="badge badge-itype-feature">New feature request</span></td><td style="text-align:center;"></td></tr><tr class="notes-row" data-idx="0"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;">Customer is not seeing value in Konvo as they are only using the inbox feature and have not adopted the AI assistant cap…</div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr><tr class="issue-row" data-idx="1"><td class="date-cell">Mar 25</td><td class="date-cell">Mar 27</td><td><span class="badge badge-green">Resolved</span></td><td class="issue-title-cell">Playground section to test the AI not working</td><td style="text-align:center;"><span class="badge badge-itype-bug">Bug</span></td><td style="text-align:center;"><a href="https://linear.app/konvoai/issue/ENG-797/playground-section-to-test-the-ai-not-working-natural-smart-beauty-sl" target="_blank" rel="noopener" style="color:var(--blue); text-decoration:none; font-size:16px;" title="Open in Linear">↗</a></td></tr><tr class="notes-row" data-idx="1"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;"></div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr><tr class="issue-row" data-idx="2"><td class="date-cell">Feb 19</td><td class="date-cell">Mar 25</td><td><span class="badge badge-green">Resolved</span></td><td class="issue-title-cell">Lucía Mendoza - Low product value, inbox-only usage, needs AI activation</td><td style="text-align:center;"><span class="badge badge-itype-other">Config Issue</span></td><td style="text-align:center;"></td></tr><tr class="notes-row" data-idx="2"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;">Customer is not seeing value in Konvo as they are only using the inbox feature and have not adopted the AI assistant cap…</div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["W1\nFeb 9", "W2\nFeb 16", "W3\nFeb 23", "W4\nMar 2", "W5\nMar 9", "W6\nMar 16", "W7\nMar 23"];
-const TOTAL_TICKETS = [4, 4, 4, 4, 4, 4, 4];
-const AI_RESOLVED   = [1, 1, 1, 1, 1, 1, 1];
-const HOURS_SAVED   = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1];
+const WEEKS = ["W1\nFeb 16", "W2\nFeb 23", "W3\nMar 2", "W4\nMar 9", "W5\nMar 16", "W6\nMar 23", "W7\nMar 30"];
+const TOTAL_TICKETS = [0, 0, 0, 0, 0, 0, 0];
+const AI_RESOLVED   = [0, 0, 0, 0, 0, 0, 0];
+const HOURS_SAVED   = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',

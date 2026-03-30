@@ -279,21 +279,21 @@
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">🤖</div>
-        <div class="metric-value" style="color:var(--blue);">65%</div>
+        <div class="metric-value" style="color:var(--blue);">56%</div>
         <div class="metric-label">AI Resolution Rate</div>
-        <div class="metric-sub">+0% vs prev. week</div>
+        <div class="metric-sub">+32% vs prev. week</div>
         <div class="metric-bar" style="background:var(--blue);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">🎫</div>
-        <div class="metric-value" style="color:var(--green);">8,000</div>
+        <div class="metric-value" style="color:var(--green);">210</div>
         <div class="metric-label">Tickets Handled</div>
-        <div class="metric-sub">5191 by AI · 2809 by humans</div>
+        <div class="metric-sub">117 by AI · 93 by humans</div>
         <div class="metric-bar" style="background:var(--green);"></div>
       </div>
       <div class="metric-card">
         <div class="metric-icon">⏱️</div>
-        <div class="metric-value" style="color:#A78BFA;">260h</div>
+        <div class="metric-value" style="color:#A78BFA;">6h</div>
         <div class="metric-label">Hours Saved</div>
         <div class="metric-sub">~3 min avg per AI ticket</div>
         <div class="metric-bar" style="background:#A78BFA;"></div>
@@ -350,7 +350,7 @@
   <header class="slide-header">
     <span class="slide-num">02 / 04</span>
     <h1 class="slide-title">What We Have Been Working On — Snap360 App</h1>
-    <span class="slide-subtitle">0 issues · Click row to expand notes</span>
+    <span class="slide-subtitle">1 issues · Click row to expand notes</span>
   </header>
 
   <div class="slide-body">
@@ -367,7 +367,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td colspan="7" style="text-align:center; color:var(--muted); padding:40px;">No issues found for this customer</td></tr>
+          <tr class="issue-row" data-idx="0"><td class="date-cell">Mar 20</td><td class="date-cell"><span style="color:var(--muted);">—</span></td><td><span class="badge badge-red">Open</span></td><td class="issue-title-cell">Jacobo Becay - Multiple conversations open simultaneously during ticketing setup</td><td style="text-align:center;"><span class="badge badge-itype-bug">Bug</span></td><td style="text-align:center;"><a href="https://linear.app/konvoai/issue/ENG-805/multiple-conversations-appearing-open-simultaneously-when-ticketing-is" target="_blank" rel="noopener" style="color:var(--blue); text-decoration:none; font-size:16px;" title="Open in Linear">↗</a></td></tr><tr class="notes-row" data-idx="0"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;">No conversation data available - manual review needed. CS manager noted an issue with multiple conversations appearing o…</div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -424,10 +424,10 @@
 <script>
 Chart.register(ChartDataLabels);
 // ── CHARTS (Slide 1 — Success Metrics) ──────────────────────────────
-const WEEKS = ["W1\nFeb 9", "W2\nFeb 16", "W3\nFeb 23", "W4\nMar 2", "W5\nMar 9", "W6\nMar 16", "W7\nMar 23"];
-const TOTAL_TICKETS = [7512, 7597, 7706, 7844, 7908, 7973, 8000];
-const AI_RESOLVED   = [4868, 4922, 4995, 5099, 5134, 5174, 5191];
-const HOURS_SAVED   = [243.4, 246.1, 249.8, 254.9, 256.7, 258.7, 259.6];
+const WEEKS = ["W1\nFeb 16", "W2\nFeb 23", "W3\nMar 2", "W4\nMar 9", "W5\nMar 16", "W6\nMar 23", "W7\nMar 30"];
+const TOTAL_TICKETS = [85, 109, 138, 64, 65, 75, 6];
+const AI_RESOLVED   = [54, 73, 104, 35, 40, 38, 4];
+const HOURS_SAVED   = [2.7, 3.6, 5.2, 1.8, 2.0, 1.9, 0.2];
 
 new Chart(document.getElementById('chart-tickets'), {
   type: 'bar',
