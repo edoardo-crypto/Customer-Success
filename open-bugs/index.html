@@ -103,6 +103,11 @@
     font-weight: 700;
     letter-spacing: 0.02em;
   }
+  .quad-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
   .quad-count {
     color: #fff;
     font-size: 13px;
@@ -111,6 +116,9 @@
     border-radius: 12px;
     min-width: 28px;
     text-align: center;
+  }
+  .urgent-count {
+    color: #EF4444 !important;
   }
 
   .quad-body {
@@ -238,9 +246,9 @@
 <div class="header">
   <div class="header-left">
     <h1>Open Bugs</h1>
-    <span class="total-badge">119</span>
+    <span class="total-badge" style="background:#EF4444">119</span>
   </div>
-  <div class="header-right">Last updated: Mar 30, 2026 at 12:59 UTC</div>
+  <div class="header-right">Last updated: Mar 30, 2026 at 13:11 UTC</div>
 </div>
 
 <div class="legend">
@@ -254,7 +262,10 @@
     <div class="quadrant" style="border-top: 4px solid #F97316;">
       <div class="quad-header" style="background:#FFF7ED;">
         <span class="quad-name" style="color:#F97316">AI Agent</span>
-        <span class="quad-count" style="background:#F97316">36</span>
+        <span class="quad-badges">
+          <span class="quad-count urgent-count" style="background:#F9731630;color:#EF4444">13</span>
+          <span class="quad-count" style="background:#F97316">36</span>
+        </span>
       </div>
       <div class="quad-body">
         
@@ -528,7 +539,10 @@
     <div class="quadrant" style="border-top: 4px solid #3B82F6;">
       <div class="quad-header" style="background:#EFF6FF;">
         <span class="quad-name" style="color:#3B82F6">Inbox</span>
-        <span class="quad-count" style="background:#3B82F6">35</span>
+        <span class="quad-badges">
+          <span class="quad-count urgent-count" style="background:#3B82F630;color:#EF4444">13</span>
+          <span class="quad-count" style="background:#3B82F6">35</span>
+        </span>
       </div>
       <div class="quad-body">
         
@@ -766,7 +780,10 @@
     <div class="quadrant" style="border-top: 4px solid #22C55E;">
       <div class="quad-header" style="background:#F0FDF4;">
         <span class="quad-name" style="color:#22C55E">WhatsApp Marketing</span>
-        <span class="quad-count" style="background:#22C55E">34</span>
+        <span class="quad-badges">
+          <span class="quad-count urgent-count" style="background:#22C55E30;color:#EF4444">14</span>
+          <span class="quad-count" style="background:#22C55E">34</span>
+        </span>
       </div>
       <div class="quad-body">
         
@@ -963,7 +980,7 @@
           </a>
 <a href="https://notion.so/31ae418fd8c481ee9548d9492f1a32e9" target="_blank" class="bug-row">
             <span class="sev-dot" style="background:#F59E0B" title="Important"></span>
-            <span class="bug-customer">Ferent</span>
+            <span class="bug-customer">Unknown</span>
             <span class="bug-title">Flow created without client confirmation</span>
             <span class="bug-age">26d ago</span>
           </a>
@@ -998,7 +1015,10 @@
     <div class="quadrant" style="border-top: 4px solid #A78BFA;">
       <div class="quad-header" style="background:#F5F3FF;">
         <span class="quad-name" style="color:#A78BFA">Integration</span>
-        <span class="quad-count" style="background:#A78BFA">14</span>
+        <span class="quad-badges">
+          <span class="quad-count urgent-count" style="background:#A78BFA30;color:#EF4444">1</span>
+          <span class="quad-count" style="background:#A78BFA">14</span>
+        </span>
       </div>
       <div class="quad-body">
         
