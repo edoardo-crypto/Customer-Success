@@ -350,7 +350,7 @@
   <header class="slide-header">
     <span class="slide-num">02 / 04</span>
     <h1 class="slide-title">What We Have Been Working On — Azulejos Solá SA</h1>
-    <span class="slide-subtitle">1 issues · Click row to expand notes</span>
+    <span class="slide-subtitle">2 issues · Click row to expand notes</span>
   </header>
 
   <div class="slide-body">
@@ -367,7 +367,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr class="issue-row" data-idx="0"><td class="date-cell">Mar 12</td><td class="date-cell">Mar 25</td><td><span class="badge badge-green">Resolved</span></td><td class="issue-title-cell">Azulejos Solá - AI failed to transfer order inquiry to human agent</td><td style="text-align:center;"><span class="badge badge-itype-other">Config Issue</span></td><td style="text-align:center;"></td></tr><tr class="notes-row" data-idx="0"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;">The AI assistant repeatedly asked the customer for additional details about an order instead of transferring the convers…</div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr>
+          <tr class="issue-row" data-idx="0"><td class="date-cell">Mar 30</td><td class="date-cell">Mar 30</td><td><span class="badge badge-green">Resolved</span></td><td class="issue-title-cell">Azulejos Solá - AI missing store location information</td><td style="text-align:center;"><span class="badge badge-itype-other">Config Issue</span></td><td style="text-align:center;"></td></tr><tr class="notes-row" data-idx="0"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;">No conversation data available - manual review needed. CS manager noted that the AI assistant did not have information a…</div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr><tr class="issue-row" data-idx="1"><td class="date-cell">Mar 12</td><td class="date-cell">Mar 25</td><td><span class="badge badge-green">Resolved</span></td><td class="issue-title-cell">Azulejos Solá - AI failed to transfer order inquiry to human agent</td><td style="text-align:center;"><span class="badge badge-itype-other">Config Issue</span></td><td style="text-align:center;"></td></tr><tr class="notes-row" data-idx="1"><td colspan="7" style="padding:0;"><div class="notes-container"><div class="notes-summary" style="color:var(--muted); font-size:13px; margin-bottom:4px;">The AI assistant repeatedly asked the customer for additional details about an order instead of transferring the convers…</div><div class="notes-editable" contenteditable="true" data-placeholder="Click to add notes…"></div></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -464,7 +464,7 @@ new Chart(document.getElementById('chart-tickets'), {
     layout: { padding: { top: 10 } },
     plugins: { legend: { position: 'top', labels: { font: { size: 13 } } } },
     scales: {
-      y: { stacked: true, beginAtZero: true, grid: { display: false }, ticks: { font: { size: 12 } } },
+      y: { stacked: true, beginAtZero: true, max: Math.ceil(Math.max(...TOTAL_TICKETS) * 1.1), grid: { display: false }, ticks: { font: { size: 12 } } },
       x: { stacked: true, grid: { display: false }, ticks: { font: { size: 12 } } }
     }
   }
