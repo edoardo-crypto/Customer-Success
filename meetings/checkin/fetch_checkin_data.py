@@ -347,6 +347,9 @@ def _rows_to_metrics(rows):
         anchors.append(i)
         i -= 2
     anchors.reverse()
+    # Always include the earliest data point so we don't waste a period
+    if anchors[0] != 0:
+        anchors.insert(0, 0)
 
     if len(anchors) < 2:
         return None
