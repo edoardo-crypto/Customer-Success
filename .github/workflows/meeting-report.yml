@@ -1,0 +1,79 @@
+name: 📊 Weekly Meeting Report
+
+on:
+  schedule:
+    - cron: '0 17 * * 0'   # Every Sunday 17:00 UTC — filtered below to period-end Sundays only
+  workflow_dispatch:
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install -r requirements.txt
+
+      - name: Check if period-end Sunday (skip mid-period runs)
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            RESULT=$(python3 -c "
+from datetime import date
+epoch = date(2026, 2, 16)
+days = (date.today() - epoch).days
+print('true' if (days + 1) % 7 == 0 else 'false')
+")
+            echo "should_run=$RESULT" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fetch report data
+        if: steps.check.outputs.should_run == 'true'
+        run: python3 fetch_report_data.py
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          STRIPE_KEY: ${{ secrets.STRIPE_KEY }}
+
+      - name: Generate HTML + archive PDF
+        if: steps.check.outputs.should_run == 'true'
+        run: python3 generate_meeting_report.py
+
+      - name: Prepare Pages directory
+        if: steps.check.outputs.should_run == 'true'
+        run: |
+          mkdir -p ./meeting-report-site
+          cp meeting_report.html ./meeting-report-site/index.html
+
+      - name: Deploy to GitHub Pages
+        if: steps.check.outputs.should_run == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./meeting-report-site
+          destination_dir: meeting-report
+          keep_files: true
+
+      - name: Commit outputs back to repo
+        if: steps.check.outputs.should_run == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add resolution_snapshots.json meetings/
+          git diff --staged --quiet || (git commit -m "📊 Report $(date +%Y-%m-%d)" && git push)
+
+      - uses: actions/upload-artifact@v4
+        if: steps.check.outputs.should_run == 'true'
+        with:
+          name: meeting-report-${{ github.run_id }}
+          path: meetings/
+          retention-days: 90
