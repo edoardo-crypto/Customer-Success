@@ -2,7 +2,7 @@ name: 📊 Weekly Meeting Report
 
 on:
   schedule:
-    - cron: '0 17 * * 0'   # Every Sunday 17:00 UTC — filtered below to period-end Sundays only
+    - cron: '0 17 * * 0'  # Every Sunday 17:00 UTC — filtered below to period-end Sundays only
   workflow_dispatch:
 
 jobs:
