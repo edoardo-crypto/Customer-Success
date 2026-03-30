@@ -63,13 +63,6 @@
     "issue_count": 0
   },
   {
-    "slug": "andres-marin",
-    "name": "Andrés Marín",
-    "page_id": "302e418f-d8c4-812e-8247-c7b5a75662f6",
-    "billing_status": "Active",
-    "issue_count": 0
-  },
-  {
     "slug": "anitials-sl",
     "name": "ANITIALS SL",
     "page_id": "31ee418f-d8c4-8134-96da-e002b2c0b910",
@@ -172,13 +165,6 @@
     "name": "Cachito de Zielo",
     "page_id": "302e418f-d8c4-8159-b17c-c7e2fef5441e",
     "billing_status": "Churning",
-    "issue_count": 0
-  },
-  {
-    "slug": "calzados-pablo-slu",
-    "name": "Calzados Pablo SLU",
-    "page_id": "302e418f-d8c4-8172-a433-dd397a6f436c",
-    "billing_status": "Active",
     "issue_count": 0
   },
   {
@@ -357,13 +343,6 @@
     "issue_count": 1
   },
   {
-    "slug": "emlife-biotics-sl",
-    "name": "EMLIFE BIOTICS, SL",
-    "page_id": "302e418f-d8c4-81b4-834a-d496ea054aab",
-    "billing_status": "Churning",
-    "issue_count": 3
-  },
-  {
     "slug": "endor-technologies",
     "name": "Endor Technologies",
     "page_id": "302e418f-d8c4-81fa-a68c-d93c59c06f95",
@@ -427,6 +406,13 @@
     "issue_count": 2
   },
   {
+    "slug": "fitfoodonline",
+    "name": "FitFoodOnline",
+    "page_id": "302e418f-d8c4-8121-9028-d749444904c5",
+    "billing_status": "Active",
+    "issue_count": 0
+  },
+  {
     "slug": "fitplanet-brand-sl",
     "name": "FITPLANET BRAND SL",
     "page_id": "302e418f-d8c4-815c-9956-c1f5f0fc5c20",
@@ -469,13 +455,6 @@
     "issue_count": 0
   },
   {
-    "slug": "futbolkit",
-    "name": "Futbolkit",
-    "page_id": "302e418f-d8c4-8121-9028-d749444904c5",
-    "billing_status": "Active",
-    "issue_count": 0
-  },
-  {
     "slug": "futboltek-technology-for-training-sl",
     "name": "Futboltek Technology for training SL",
     "page_id": "302e418f-d8c4-8102-ae7b-fe7583cc060d",
@@ -493,13 +472,6 @@
     "slug": "genuins-sales-s-l",
     "name": "Genuins Sales S.L",
     "page_id": "31ee418f-d8c4-819e-883f-c91694e8b2b4",
-    "billing_status": "Active",
-    "issue_count": 0
-  },
-  {
-    "slug": "gfa-group-sl",
-    "name": "Gfa Group SL",
-    "page_id": "302e418f-d8c4-8113-b43b-c529e4573bd5",
     "billing_status": "Active",
     "issue_count": 0
   },
@@ -564,7 +536,7 @@
     "name": "Huellas de Ibiza",
     "page_id": "302e418f-d8c4-816d-9112-d913acdc795c",
     "billing_status": "Active",
-    "issue_count": 4
+    "issue_count": 5
   },
   {
     "slug": "ibg-illice-brands-group",
@@ -756,13 +728,6 @@
     "issue_count": 7
   },
   {
-    "slug": "mercajeans-group-s-l",
-    "name": "MERCAJEANS GROUP, S. L.",
-    "page_id": "302e418f-d8c4-8193-9a2e-d633f6bdf655",
-    "billing_status": "Churning",
-    "issue_count": 0
-  },
-  {
     "slug": "mimikoko-jewelry",
     "name": "MIMÍKOKÓ JEWELRY",
     "page_id": "302e418f-d8c4-81aa-8d8b-de3a9c97cca3",
@@ -774,13 +739,6 @@
     "name": "MindTravelerBcn",
     "page_id": "302e418f-d8c4-81ba-ad08-d53801bb2a62",
     "billing_status": "Active",
-    "issue_count": 0
-  },
-  {
-    "slug": "mixen-beauty-technologies-s-l",
-    "name": "MIXEN BEAUTY TECHNOLOGIES, S.L.",
-    "page_id": "302e418f-d8c4-8161-b1e4-f0ba51fd720e",
-    "billing_status": "Churning",
     "issue_count": 0
   },
   {
@@ -963,13 +921,6 @@
     "name": "PARFUMS NOX",
     "page_id": "302e418f-d8c4-8121-8465-e935fd71da95",
     "billing_status": "Past Due",
-    "issue_count": 0
-  },
-  {
-    "slug": "paris64-brand-s-l",
-    "name": "PARIS64 BRAND S.L",
-    "page_id": "302e418f-d8c4-815d-abdc-c4eee5eaea8e",
-    "billing_status": "Active",
     "issue_count": 0
   },
   {
