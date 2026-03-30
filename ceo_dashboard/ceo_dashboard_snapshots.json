@@ -1,0 +1,16 @@
+{
+  "2026-03-23": {
+    "active_count": 193,
+    "total_mrr": 59682.0,
+    "great": 37,
+    "alright": 0,
+    "at_risk": 52
+  },
+  "2026-03-30": {
+    "active_count": 193,
+    "total_mrr": 59682.0,
+    "great": 40,
+    "alright": 74,
+    "at_risk": 55
+  }
+}
