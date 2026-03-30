@@ -293,7 +293,7 @@ def fetch_clickhouse_metrics(stripe_customer_id):
             argMax(ai_sessions_unresolved, created_at)     AS ai_sessions_unresolved
         FROM operator.public_workspace_report_snapshot
         WHERE stripe_customer_id = '{stripe_customer_id}'
-          AND toDate(created_at) >= toMonday(today()) - 56
+          AND toDate(created_at) >= toMonday(today()) - 63
         GROUP BY week_start
         ORDER BY week_start
         FORMAT JSON
@@ -315,65 +315,55 @@ def fetch_clickhouse_metrics(stripe_customer_id):
         print("   ⚠️  No ClickHouse data found for this customer")
         return None
 
-    weeks = []
-    ai_resolution = []
-    sessions_total = []
-    sessions_ai = []
-    sessions_human = []
-    hours_saved = []
+    result = _rows_to_metrics(rows)
+    if result is None:
+        print("   ⚠️  Not enough ClickHouse data to compute weekly deltas")
+        return None
 
-    for i, row in enumerate(rows):
-        ws = row.get("week_start", "")
-        try:
-            d = datetime.strptime(ws, "%Y-%m-%d")
-            label = f"W{i + 1}\n{d.strftime('%b %d').replace(' 0', ' ')}"
-        except ValueError:
-            label = f"W{i + 1}"
-        weeks.append(label)
-        rate = float(row.get("ai_resolution_rate") or 0)
-        total = float(row.get("ai_sessions_total") or 0)
-        resolved = float(row.get("ai_sessions_resolved") or 0)
-        unresolved = float(row.get("ai_sessions_unresolved") or 0)
-
-        ai_resolution.append(round(rate, 2))
-        sessions_total.append(int(total))
-        sessions_ai.append(int(resolved))
-        sessions_human.append(int(unresolved))
-        hours_saved.append(round(resolved * MINUTES_PER_AI_SESSION / 60, 1))
-
-    print(f"   → {len(rows)} weeks of data")
-    return {
-        "weeks": weeks,
-        "ai_resolution_rate": ai_resolution,
-        "sessions_total": sessions_total,
-        "sessions_ai": sessions_ai,
-        "sessions_human": sessions_human,
-        "hours_saved": hours_saved,
-    }
+    print(f"   → {len(result['weeks'])} weeks of data")
+    return result
 
 
 def _rows_to_metrics(rows):
-    """Convert a list of ClickHouse rows (for one customer) into a metrics dict."""
+    """Convert cumulative ClickHouse snapshot rows into per-week delta metrics.
+
+    The snapshot table stores running totals. We compute week-over-week deltas
+    so charts and headlines reflect actual weekly activity. The first row acts
+    as the anchor (subtracted from row 2) and is dropped from output.
+    """
+    if len(rows) < 2:
+        return None
+
+    # Parse cumulative values from all rows
+    cum_total, cum_resolved, cum_unresolved, week_starts = [], [], [], []
+    for row in rows:
+        cum_total.append(float(row.get("ai_sessions_total") or 0))
+        cum_resolved.append(float(row.get("ai_sessions_resolved") or 0))
+        cum_unresolved.append(float(row.get("ai_sessions_unresolved") or 0))
+        week_starts.append(row.get("week_start", ""))
+
+    # Compute deltas — skip index 0 (anchor week)
     weeks, ai_resolution, sessions_total = [], [], []
     sessions_ai, sessions_human, hours_saved = [], [], []
 
-    for i, row in enumerate(rows):
-        ws = row.get("week_start", "")
+    for i in range(1, len(rows)):
+        ws = week_starts[i]
         try:
             d = datetime.strptime(ws, "%Y-%m-%d")
-            label = f"W{i + 1}\n{d.strftime('%b %d').replace(' 0', ' ')}"
+            label = f"W{i}\n{d.strftime('%b %d').replace(' 0', ' ')}"
         except ValueError:
-            label = f"W{i + 1}"
+            label = f"W{i}"
         weeks.append(label)
-        rate = float(row.get("ai_resolution_rate") or 0)
-        total = float(row.get("ai_sessions_total") or 0)
-        resolved = float(row.get("ai_sessions_resolved") or 0)
-        unresolved = float(row.get("ai_sessions_unresolved") or 0)
-        ai_resolution.append(round(rate, 2))
-        sessions_total.append(int(total))
-        sessions_ai.append(int(resolved))
-        sessions_human.append(int(unresolved))
-        hours_saved.append(round(resolved * MINUTES_PER_AI_SESSION / 60, 1))
+
+        d_total = max(0, int(cum_total[i] - cum_total[i - 1]))
+        d_resolved = max(0, int(cum_resolved[i] - cum_resolved[i - 1]))
+        d_unresolved = max(0, int(cum_unresolved[i] - cum_unresolved[i - 1]))
+
+        sessions_total.append(d_total)
+        sessions_ai.append(d_resolved)
+        sessions_human.append(d_unresolved)
+        ai_resolution.append(round(d_resolved / d_total, 4) if d_total > 0 else 0.0)
+        hours_saved.append(round(d_resolved * MINUTES_PER_AI_SESSION / 60, 1))
 
     return {
         "weeks": weeks,
@@ -402,7 +392,7 @@ def fetch_all_clickhouse_metrics():
             argMax(ai_sessions_resolved, created_at)       AS ai_sessions_resolved,
             argMax(ai_sessions_unresolved, created_at)     AS ai_sessions_unresolved
         FROM operator.public_workspace_report_snapshot
-        WHERE toDate(created_at) >= toMonday(today()) - 56
+        WHERE toDate(created_at) >= toMonday(today()) - 63
           AND stripe_customer_id != ''
         GROUP BY stripe_customer_id, week_start
         ORDER BY stripe_customer_id, week_start
@@ -431,7 +421,9 @@ def fetch_all_clickhouse_metrics():
     # Convert each customer's rows to a metrics dict
     result = {}
     for sid, cust_rows in by_customer.items():
-        result[sid] = _rows_to_metrics(cust_rows)
+        m = _rows_to_metrics(cust_rows)
+        if m is not None:
+            result[sid] = m
 
     print(f"   → {len(rows)} rows for {len(result)} customers")
     return result

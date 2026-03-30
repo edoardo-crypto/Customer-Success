@@ -143,19 +143,25 @@ def render_checkin_html(customer_name, issues, releases_data,
 
     # ── Metric card values (from ClickHouse or fallback to placeholder) ──
     if metrics and metrics.get("ai_resolution_rate"):
-        latest_rate = metrics["ai_resolution_rate"][-1]
-        ai_rate_display = f"{round(latest_rate * 100)}%" if latest_rate <= 1 else f"{round(latest_rate)}%"
-        tickets_total = metrics["sessions_total"][-1]
-        tickets_ai = metrics["sessions_ai"][-1]
-        tickets_human = metrics["sessions_human"][-1]
-        hours_val = metrics["hours_saved"][-1]
+        # Sum last 4 weeks (~30 days) for headline values
+        n = min(4, len(metrics["sessions_total"]))
+        tickets_total = sum(metrics["sessions_total"][-n:])
+        tickets_ai = sum(metrics["sessions_ai"][-n:])
+        tickets_human = sum(metrics["sessions_human"][-n:])
+        hours_val = sum(metrics["hours_saved"][-n:])
+
+        # AI Resolution Rate headline: ratio over last 4 weeks combined
+        latest_rate = tickets_ai / tickets_total if tickets_total > 0 else 0.0
+        ai_rate_display = f"{round(latest_rate * 100)}%"
+
         hours_display = f"{hours_val:.0f}h" if hours_val >= 1 else f"{round(hours_val * 60)}m"
 
         # Compute % change vs previous week for AI resolution
         if len(metrics["ai_resolution_rate"]) >= 2:
+            this_week_rate = metrics["ai_resolution_rate"][-1]
             prev_rate = metrics["ai_resolution_rate"][-2]
             if prev_rate and prev_rate > 0:
-                pct_change = ((latest_rate - prev_rate) / prev_rate) * 100
+                pct_change = ((this_week_rate - prev_rate) / prev_rate) * 100
                 rate_sub = f"{pct_change:+.0f}% vs prev. week"
             else:
                 rate_sub = ""
@@ -164,7 +170,7 @@ def render_checkin_html(customer_name, issues, releases_data,
 
         tickets_display = f"{tickets_total:,}"
         tickets_sub = f"{tickets_ai} by AI · {tickets_human} by humans"
-        hours_sub = f"~{3} min avg per AI ticket"
+        hours_sub = f"~3 min avg per AI ticket"
 
         # Weekly chart data
         weeks_js = json.dumps(metrics["weeks"])
