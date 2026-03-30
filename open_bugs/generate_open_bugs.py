@@ -140,12 +140,14 @@ def render_bug_row(bug):
           </a>"""
 
 
-def render_quadrant(cat_info, bugs):
+def render_quadrant(cat_info, bugs, expand_all=False):
     key = cat_info["key"]
     color = cat_info["color"]
     bg = cat_info["bg"]
     cat_bugs = [b for b in bugs if b.get("category") == key]
     count = len(cat_bugs)
+    urgent_count = sum(1 for b in cat_bugs if b.get("severity") == "Urgent")
+    open_attr = " open" if expand_all else ""
 
     # Group into subsections
     grouped = {}
@@ -166,7 +168,7 @@ def render_quadrant(cat_info, bugs):
         rows = "\n".join(render_bug_row(b) for b in sub_bugs)
         sub_count = len(sub_bugs)
         sections_html += f"""
-        <details class="subsection">
+        <details class="subsection"{open_attr}>
           <summary class="sub-header">
             <span class="sub-name">{label}</span>
             <span class="sub-count" style="color:{color}">{sub_count}</span>
@@ -178,7 +180,7 @@ def render_quadrant(cat_info, bugs):
     if ungrouped:
         rows = "\n".join(render_bug_row(b) for b in ungrouped)
         sections_html += f"""
-        <details class="subsection">
+        <details class="subsection"{open_attr}>
           <summary class="sub-header">
             <span class="sub-name">Other</span>
             <span class="sub-count" style="color:{color}">{len(ungrouped)}</span>
@@ -193,7 +195,10 @@ def render_quadrant(cat_info, bugs):
     <div class="quadrant" style="border-top: 4px solid {color};">
       <div class="quad-header" style="background:{bg};">
         <span class="quad-name" style="color:{color}">{key}</span>
-        <span class="quad-count" style="background:{color}">{count}</span>
+        <span class="quad-badges">
+          <span class="quad-count urgent-count" style="background:{color}30;color:#EF4444">{urgent_count}</span>
+          <span class="quad-count" style="background:{color}">{count}</span>
+        </span>
       </div>
       <div class="quad-body">
         {sections_html}
@@ -201,23 +206,11 @@ def render_quadrant(cat_info, bugs):
     </div>"""
 
 
-def generate():
-    with open(DATA_FILE, encoding="utf-8") as f:
-        data = json.load(f)
+def build_page(bugs, title, total_badge_color, updated_str, expand_all=False):
+    """Build the full HTML page for a set of bugs."""
+    total = len(bugs)
+    quadrants_html = "\n".join(render_quadrant(c, bugs, expand_all=expand_all) for c in CATEGORIES)
 
-    bugs = data.get("bugs", [])
-    total = data.get("total", len(bugs))
-    generated_at = data.get("generated_at", "")
-
-    try:
-        ts = datetime.fromisoformat(generated_at.replace("Z", "+00:00"))
-        updated_str = ts.strftime("%b %d, %Y at %H:%M UTC")
-    except Exception:
-        updated_str = generated_at
-
-    quadrants_html = "\n".join(render_quadrant(c, bugs) for c in CATEGORIES)
-
-    # Uncategorized
     categorized_keys = {c["key"] for c in CATEGORIES}
     uncategorized = [b for b in bugs if b.get("category") not in categorized_keys]
     uncat_section = ""
@@ -237,13 +230,13 @@ def generate():
       </div>
     </div>"""
 
-    html = f"""<!DOCTYPE html>
+    return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="300">
-<title>Open Bugs — Konvo AI</title>
+<title>{title} — Konvo AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -342,6 +335,11 @@ def generate():
     font-weight: 700;
     letter-spacing: 0.02em;
   }}
+  .quad-badges {{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }}
   .quad-count {{
     color: #fff;
     font-size: 13px;
@@ -350,6 +348,9 @@ def generate():
     border-radius: 12px;
     min-width: 28px;
     text-align: center;
+  }}
+  .urgent-count {{
+    color: #EF4444 !important;
   }}
 
   .quad-body {{
@@ -476,8 +477,8 @@ def generate():
 
 <div class="header">
   <div class="header-left">
-    <h1>Open Bugs</h1>
-    <span class="total-badge">{total}</span>
+    <h1>{title}</h1>
+    <span class="total-badge" style="background:{total_badge_color}">{total}</span>
   </div>
   <div class="header-right">Last updated: {updated_str}</div>
 </div>
@@ -498,10 +499,38 @@ def generate():
 </body>
 </html>"""
 
+    return html
+
+
+def generate():
+    with open(DATA_FILE, encoding="utf-8") as f:
+        data = json.load(f)
+
+    all_bugs = data.get("bugs", [])
+    generated_at = data.get("generated_at", "")
+
+    try:
+        ts = datetime.fromisoformat(generated_at.replace("Z", "+00:00"))
+        updated_str = ts.strftime("%b %d, %Y at %H:%M UTC")
+    except Exception:
+        updated_str = generated_at
+
+    # 1. All open bugs (collapsed)
     os.makedirs(OUT_DIR, exist_ok=True)
+    html_all = build_page(all_bugs, "Open Bugs", "#EF4444", updated_str, expand_all=False)
     with open(OUT_FILE, "w", encoding="utf-8") as f:
-        f.write(html)
-    print(f"Generated {OUT_FILE} — {total} bugs across {len(CATEGORIES)} categories")
+        f.write(html_all)
+    print(f"Generated {OUT_FILE} — {len(all_bugs)} bugs")
+
+    # 2. Urgent only (expanded)
+    urgent_bugs = [b for b in all_bugs if b.get("severity") == "Urgent"]
+    urgent_dir = os.path.join(OUT_DIR, "urgent")
+    os.makedirs(urgent_dir, exist_ok=True)
+    html_urgent = build_page(urgent_bugs, "Open Bugs — Urgent", "#DC2626", updated_str, expand_all=True)
+    urgent_file = os.path.join(urgent_dir, "index.html")
+    with open(urgent_file, "w", encoding="utf-8") as f:
+        f.write(html_urgent)
+    print(f"Generated {urgent_file} — {len(urgent_bugs)} urgent bugs")
 
 
 if __name__ == "__main__":
