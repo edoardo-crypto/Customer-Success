@@ -286,14 +286,14 @@ def fetch_clickhouse_metrics(stripe_customer_id):
     host, user, password = _ch_creds()
     sql = f"""
         SELECT
-            toStartOfMonth(toDate(created_at))             AS month_start,
+            toMonday(toDate(created_at))                   AS week_start,
             argMax(ai_sessions_count, created_at)          AS ai_sessions_count,
             argMax(ai_sessions_resolved, created_at)       AS ai_sessions_resolved
         FROM operator.public_workspace_report_snapshot
         WHERE stripe_customer_id = '{stripe_customer_id}'
-          AND toDate(created_at) >= toStartOfMonth(today()) - INTERVAL 6 MONTH
-        GROUP BY month_start
-        ORDER BY month_start
+          AND toDate(created_at) >= toMonday(today()) - 189
+        GROUP BY week_start
+        ORDER BY week_start
         FORMAT JSON
     """
 
@@ -315,45 +315,61 @@ def fetch_clickhouse_metrics(stripe_customer_id):
 
     result = _rows_to_metrics(rows)
     if result is None:
-        print("   ⚠️  Not enough ClickHouse data to compute monthly deltas")
+        print("   ⚠️  Not enough ClickHouse data to compute bi-weekly deltas")
         return None
 
-    print(f"   → {len(result['months'])} months of data")
+    print(f"   → {len(result['labels'])} bi-weekly periods")
     return result
 
 
 def _rows_to_metrics(rows):
-    """Convert cumulative ClickHouse snapshot rows into per-month delta metrics.
+    """Convert cumulative ClickHouse weekly snapshots into bi-weekly delta metrics.
 
-    The snapshot table stores running totals. We compute month-over-month deltas
-    so charts and headlines reflect actual monthly activity. The first row acts
-    as the anchor (subtracted from row 2) and is dropped from output.
+    The snapshot table stores running totals grouped by week. We select every-other
+    week as anchor points (aligned to the latest week) and compute deltas between
+    them, producing one bar per 2-week period.
     """
-    if len(rows) < 2:
+    if len(rows) < 3:
         return None
 
-    # Parse cumulative values from all rows
-    cum_count, cum_resolved, month_starts = [], [], []
+    # Parse cumulative values from all weekly rows
+    cum_count, cum_resolved, week_starts = [], [], []
     for row in rows:
         cum_count.append(float(row.get("ai_sessions_count") or 0))
         cum_resolved.append(float(row.get("ai_sessions_resolved") or 0))
-        month_starts.append(row.get("month_start", ""))
+        week_starts.append(row.get("week_start", ""))
 
-    # Compute deltas — skip index 0 (anchor month)
-    months, ai_resolution, sessions_total = [], [], []
+    # Build bi-weekly anchor points, aligned from the end so the latest
+    # period always covers a full 2-week span
+    anchors = []
+    i = len(rows) - 1
+    while i >= 0:
+        anchors.append(i)
+        i -= 2
+    anchors.reverse()
+
+    if len(anchors) < 2:
+        return None
+
+    # Compute bi-weekly deltas between consecutive anchor points
+    labels, ai_resolution, sessions_total = [], [], []
     sessions_ai, sessions_human, hours_saved = [], [], []
 
-    for i in range(1, len(rows)):
-        ms = month_starts[i]
-        try:
-            d = datetime.strptime(ms, "%Y-%m-%d")
-            label = d.strftime("%b")
-        except ValueError:
-            label = ms
-        months.append(label)
+    for j in range(1, len(anchors)):
+        prev_idx = anchors[j - 1]
+        curr_idx = anchors[j]
 
-        d_count = max(0, int(cum_count[i] - cum_count[i - 1]))
-        d_resolved = max(0, int(cum_resolved[i] - cum_resolved[i - 1]))
+        # Label: start date of this bi-weekly period
+        ws = week_starts[prev_idx]
+        try:
+            d = datetime.strptime(ws, "%Y-%m-%d") + timedelta(days=7)
+            label = d.strftime("%b %d").replace(" 0", " ")
+        except ValueError:
+            label = ws
+        labels.append(label)
+
+        d_count = max(0, int(cum_count[curr_idx] - cum_count[prev_idx]))
+        d_resolved = max(0, int(cum_resolved[curr_idx] - cum_resolved[prev_idx]))
         d_human = max(0, d_count - d_resolved)
 
         sessions_total.append(d_count)
@@ -363,7 +379,7 @@ def _rows_to_metrics(rows):
         hours_saved.append(round(d_resolved * MINUTES_PER_AI_SESSION / 60, 1))
 
     return {
-        "months": months,
+        "labels": labels,
         "ai_resolution_rate": ai_resolution,
         "sessions_total": sessions_total,
         "sessions_ai": sessions_ai,
@@ -383,14 +399,14 @@ def fetch_all_clickhouse_metrics():
     sql = """
         SELECT
             stripe_customer_id,
-            toStartOfMonth(toDate(created_at))             AS month_start,
+            toMonday(toDate(created_at))                   AS week_start,
             argMax(ai_sessions_count, created_at)          AS ai_sessions_count,
             argMax(ai_sessions_resolved, created_at)       AS ai_sessions_resolved
         FROM operator.public_workspace_report_snapshot
-        WHERE toDate(created_at) >= toStartOfMonth(today()) - INTERVAL 6 MONTH
+        WHERE toDate(created_at) >= toMonday(today()) - 189
           AND stripe_customer_id != ''
-        GROUP BY stripe_customer_id, month_start
-        ORDER BY stripe_customer_id, month_start
+        GROUP BY stripe_customer_id, week_start
+        ORDER BY stripe_customer_id, week_start
         FORMAT JSON
     """
 
