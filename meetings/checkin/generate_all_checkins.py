@@ -118,14 +118,14 @@ def main():
     # 1. Fetch all MCT pages
     mct_pages = fetch_all_mct()
 
-    # 2. Filter to Active + Churning
+    # 2. Filter to all except Canceled
     customers = []
     for page in mct_pages:
         name = get_title(page, "🏢 Company Name").strip()
         if not name:
             continue
         billing = get_select(page, "💰 Billing Status") or ""
-        if billing in ("Active", "Churning"):
+        if billing and billing != "Canceled":
             customers.append({
                 "page_id": page["id"],
                 "name": name,
@@ -134,7 +134,7 @@ def main():
                 "stripe_id": get_rich_text(page, "🔗 Stripe Customer ID").strip(),
             })
 
-    print(f"\n📋 {len(customers)} customers (Active + Churning)")
+    print(f"\n📋 {len(customers)} customers (all except Canceled)")
 
     # 3. Fetch all issues
     issue_pages = fetch_all_issues()
